@@ -5,6 +5,8 @@
   "main": "my-index.ts",
   "scripts": {
     "build": "tsx my-index.ts",
+    "docs": "tsx generate-docs.ts > LAYERS.md && echo 'Documentation generated: LAYERS.md'",
+    "docs:preview": "tsx generate-docs.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

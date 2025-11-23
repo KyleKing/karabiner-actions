@@ -18,6 +18,11 @@ const (
 	ModeWordlistSelect
 	ModeWordlistPractice
 	ModeStats
+	ModePerKeyStats
+	ModeThresholdTuning
+	ModeLayerActivation
+	ModeChordPractice
+	ModeSessionHistory
 )
 
 // Model is the main Bubbletea model
@@ -53,10 +58,47 @@ type Model struct {
 	selectedWordlist  int
 	currentWordlist   *MonkeyTypeWordlist
 
+	// Statistics state
+	keyStats         *KeyStatistics
+	sessionHistory   *SessionHistory
+	sessionStartTime time.Time
+
+	// Threshold tuning state
+	testThresholds    []int
+	selectedThreshold int
+	thresholdResults  map[int]*ThresholdTestResult
+
+	// Layer activation state
+	layerPracticeStep int
+	layerChordStart   time.Time
+	layerChordKeys    []rune
+
+	// Chord practice state
+	chordTarget      []rune
+	chordPresses     []time.Time
+	chordResults     []ChordResult
+
 	// UI state
 	showHints       bool
 	statusMessage   string
 	quitting        bool
+}
+
+// ThresholdTestResult stores results for testing a threshold
+type ThresholdTestResult struct {
+	Threshold      int
+	Presses        int
+	AccidentalMods int
+	AverageTiming  time.Duration
+}
+
+// ChordResult stores the result of a chord attempt
+type ChordResult struct {
+	Keys       []rune
+	Timings    []time.Time
+	MaxGap     time.Duration
+	Success    bool
+	WithinThreshold bool
 }
 
 // tickMsg is sent on every tick for animations
@@ -72,16 +114,29 @@ func NewModel(config *PracticeConfig, wordlists map[string]*MonkeyTypeWordlist) 
 		progress.WithoutPercentage(),
 	)
 
+	// Load session history
+	history, err := LoadSessionHistory()
+	if err != nil {
+		history = &SessionHistory{Sessions: make([]Session, 0)}
+	}
+
 	return Model{
-		config:        config,
-		mode:          ModeMenu,
-		keyPresses:    make([]KeyPress, 0),
-		progress:      prog,
-		showHints:     true,
-		width:         80,
-		height:        24,
-		wordlists:     wordlists,
-		wordlistNames: GetWordlistNames(wordlists),
+		config:           config,
+		mode:             ModeMenu,
+		keyPresses:       make([]KeyPress, 0),
+		progress:         prog,
+		showHints:        true,
+		width:            80,
+		height:           24,
+		wordlists:        wordlists,
+		wordlistNames:    GetWordlistNames(wordlists),
+		keyStats:         NewKeyStatistics(),
+		sessionHistory:   history,
+		sessionStartTime: time.Now(),
+		testThresholds:   []int{150, 180, 200, 220, 250, 300},
+		selectedThreshold: 2, // Default to 200ms (index 2)
+		thresholdResults: make(map[int]*ThresholdTestResult),
+		chordResults:     make([]ChordResult, 0),
 	}
 }
 
@@ -152,8 +207,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = ModeStats
 				m.stats = CalculateTimingStats(m.keyPresses)
 			}
+		case "6":
+			if m.mode == ModeMenu {
+				m.mode = ModePerKeyStats
+			}
+		case "7":
+			if m.mode == ModeMenu {
+				m.mode = ModeThresholdTuning
+				m.selectedThreshold = 2 // Reset to default
+				m.targetText = "the quick brown fox jumps over the lazy dog ask flask salad"
+				m.currentPos = 0
+				m.errors = 0
+			}
+		case "8":
+			if m.mode == ModeMenu {
+				m.mode = ModeLayerActivation
+				m.layerPracticeStep = 0
+			}
+		case "9":
+			if m.mode == ModeMenu {
+				m.mode = ModeChordPractice
+				m.chordTarget = []rune{'d', 'f'} // Ctrl+Shift
+				m.chordPresses = make([]time.Time, 0)
+			}
+		case "0":
+			if m.mode == ModeMenu {
+				m.mode = ModeSessionHistory
+			}
 		case "h":
 			m.showHints = !m.showHints
+		case "left", "right":
+			if m.mode == ModeThresholdTuning {
+				if msg.String() == "left" && m.selectedThreshold > 0 {
+					m.selectedThreshold--
+				} else if msg.String() == "right" && m.selectedThreshold < len(m.testThresholds)-1 {
+					m.selectedThreshold++
+				}
+			}
 		case "up", "k":
 			if m.mode == ModeWordlistSelect && m.selectedWordlist > 0 {
 				m.selectedWordlist--
@@ -176,7 +266,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		default:
 			// Handle regular key presses
-			if m.mode != ModeMenu && m.mode != ModeWordlistSelect {
+			excludeModes := []Mode{ModeMenu, ModeWordlistSelect, ModeStats, ModePerKeyStats, ModeSessionHistory}
+			shouldHandle := true
+			for _, mode := range excludeModes {
+				if m.mode == mode {
+					shouldHandle = false
+					break
+				}
+			}
+			if shouldHandle {
 				m.handleKeyPress(msg)
 			}
 		}
@@ -246,10 +344,42 @@ func (m *Model) finalizeKeyPress() {
 	// Finalize duration
 	m.currentKeyPress.Duration = time.Since(m.currentKeyPress.PressTime)
 
-	// Evaluate the key press
-	result := EvaluateKeyPress(*m.currentKeyPress, m.config)
+	// Evaluate the key press (use test threshold if in tuning mode)
+	config := m.config
+	if m.mode == ModeThresholdTuning {
+		// Create temporary config with test threshold
+		testConfig := *m.config
+		testConfig.Timing.ToIfHeldDownThresholdMS = m.testThresholds[m.selectedThreshold]
+		config = &testConfig
+	}
+
+	result := EvaluateKeyPress(*m.currentKeyPress, config)
 	m.lastResult = &result
 	m.keyPresses = append(m.keyPresses, *m.currentKeyPress)
+
+	// Record per-key statistics
+	m.keyStats.RecordKeyPress(*m.currentKeyPress, result.WasAccidental)
+
+	// Handle threshold tuning recording
+	if m.mode == ModeThresholdTuning {
+		threshold := m.testThresholds[m.selectedThreshold]
+		if m.thresholdResults[threshold] == nil {
+			m.thresholdResults[threshold] = &ThresholdTestResult{
+				Threshold: threshold,
+			}
+		}
+		res := m.thresholdResults[threshold]
+		res.Presses++
+		if result.WasAccidental {
+			res.AccidentalMods++
+		}
+		// Update average
+		if res.Presses == 1 {
+			res.AverageTiming = m.currentKeyPress.Duration
+		} else {
+			res.AverageTiming = (res.AverageTiming*time.Duration(res.Presses-1) + m.currentKeyPress.Duration) / time.Duration(res.Presses)
+		}
+	}
 
 	// Handle different modes
 	switch m.mode {
@@ -264,7 +394,7 @@ func (m *Model) finalizeKeyPress() {
 			m.stats = CalculateTimingStats(m.calibrationPresses)
 		}
 
-	case ModeHRMPractice, ModeLayerPractice, ModeWordlistPractice:
+	case ModeHRMPractice, ModeLayerPractice, ModeWordlistPractice, ModeThresholdTuning:
 		if m.currentPos < len(m.targetText) {
 			expected := rune(m.targetText[m.currentPos])
 			if m.currentKeyPress.Key == expected {

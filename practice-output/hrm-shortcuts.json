@@ -1,0 +1,71 @@
+{
+  "name": "HRM Shortcuts",
+  "description": "Common keyboard shortcuts using Home Row Mods",
+  "shortcuts": [
+    {
+      "keys": [
+        "gui",
+        "c"
+      ],
+      "description": "Copy",
+      "hrm": "semicolon+c or a+c"
+    },
+    {
+      "keys": [
+        "gui",
+        "v"
+      ],
+      "description": "Paste",
+      "hrm": "semicolon+v or a+v"
+    },
+    {
+      "keys": [
+        "gui",
+        "x"
+      ],
+      "description": "Cut",
+      "hrm": "semicolon+x or a+x"
+    },
+    {
+      "keys": [
+        "gui",
+        "z"
+      ],
+      "description": "Undo",
+      "hrm": "semicolon+z or a+z"
+    },
+    {
+      "keys": [
+        "gui",
+        "shift",
+        "z"
+      ],
+      "description": "Redo",
+      "hrm": "semicolon+f+z"
+    },
+    {
+      "keys": [
+        "gui",
+        "s"
+      ],
+      "description": "Save",
+      "hrm": "semicolon+s (conflict!)"
+    },
+    {
+      "keys": [
+        "ctrl",
+        "c"
+      ],
+      "description": "Cancel",
+      "hrm": "d+c or k+c"
+    },
+    {
+      "keys": [
+        "alt",
+        "tab"
+      ],
+      "description": "Switch app",
+      "hrm": "s+tab or l+tab"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "Symbol Layer Practice",
+  "groups": [
+    [
+      0,
+      100
+    ]
+  ],
+  "words": [
+    "def func(args):",
+    "array[index]",
+    "obj['key']",
+    "{x: 1, y: 2}",
+    "if (condition) {",
+    "for item in list:",
+    "lambda x: x + 1",
+    "dict[key] = value",
+    "tuple = (1, 2, 3)",
+    "set = {1, 2, 3}",
+    "fn(a, b, c)",
+    "class Name:",
+    "return [x, y]",
+    "import {module}",
+    "const obj = {};",
+    "(async () => {})",
+    "arr.map((x) => x)",
+    "obj?.property",
+    "spread = [...arr]",
+    "destructure = {a, b}"
+  ]
+}

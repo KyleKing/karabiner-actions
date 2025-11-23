@@ -1,0 +1,90 @@
+{
+  "version": "1.0.0",
+  "homeRowMods": {
+    "left": {
+      "a": "gui",
+      "s": "alt",
+      "d": "ctrl",
+      "f": "shift"
+    },
+    "right": {
+      "j": "shift",
+      "k": "ctrl",
+      "l": "alt",
+      ";": "gui"
+    }
+  },
+  "symbolLayers": {
+    "hyper_g": {
+      "activator": "g",
+      "mode": "sticky",
+      "mappings": {
+        "j": "(",
+        "k": ")",
+        "u": "[",
+        "i": "]",
+        "m": "{",
+        ",": "}"
+      }
+    },
+    "duo_space_g": {
+      "activator": [
+        "spacebar",
+        "g"
+      ],
+      "mode": "chord",
+      "mappings": {
+        "0": ")",
+        "1": "!",
+        "2": "@",
+        "3": "#",
+        "4": "$",
+        "5": "%",
+        "6": "^",
+        "7": "&",
+        "8": "*",
+        "9": "(",
+        "j": "(",
+        "k": ")",
+        "u": "[",
+        "i": "]",
+        "h": "{",
+        "l": "}",
+        "n": "<",
+        "m": ">",
+        "-": "_",
+        "=": "+"
+      }
+    },
+    "numbers_v_m": {
+      "activator": [
+        "v",
+        "m"
+      ],
+      "mode": "chord",
+      "mappings": {
+        "h": "0",
+        "m": "1",
+        ",": "2",
+        ".": "3",
+        "j": "4",
+        "k": "5",
+        "l": "6",
+        "u": "7",
+        "i": "8",
+        "o": "9"
+      }
+    }
+  },
+  "timing": {
+    "to_if_alone_timeout_milliseconds": 300,
+    "to_if_held_down_threshold_milliseconds": 200,
+    "to_delayed_action_delay_milliseconds": 200,
+    "simultaneous_threshold_milliseconds": 45
+  },
+  "metadata": {
+    "generated": "2025-11-23T07:29:57.009Z",
+    "source": "my-index.ts",
+    "description": "HRM (GACS) + Symbol Layers configuration for typing practice"
+  }
+}

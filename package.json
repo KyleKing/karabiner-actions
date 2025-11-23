@@ -4,7 +4,8 @@
   "description": "Generate Karabiner JSON",
   "main": "my-index.ts",
   "scripts": {
-    "build": "tsx my-index.ts",
+    "build": "npx tsx my-index.ts",
+    "export": "npx tsx export-practice-config.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -132,7 +132,8 @@ function generateCapsLockDoc(): string {
   let output = `## Caps Lock / Escape\n\n`;
   output += `**Trigger:** Physical Caps Lock key\n\n`;
   output += `- **Tap Caps Lock:** Escape\n`;
-  output += `- **Hold Both Shifts:** Toggle Caps Lock\n\n`;
+  output += `- **Hold Both Shifts:** Toggle Caps Lock\n`;
+  output += `- **CAPS + Hold F or J:** Temporary lowercase (Shift inverts CAPS)\n\n`;
 
   return output;
 }
@@ -149,9 +150,116 @@ function generateDocs(): string {
   // Add Home Row Mods
   doc += generateHomeRowModsDoc();
 
+  // Add Active Productivity Layers
+  doc += `---\n\n`;
+  doc += `## Active Layers\n\n`;
+  doc += `The following layers are currently active and ready to use. All use dual-key triggers to avoid accidental activation.\n\n`;
+
+  // Navigation Layer
+  const navigationLayer: Layer = {
+    name: "Navigation Layer (Vim-style)",
+    trigger: "Hold Spacebar + D simultaneously",
+    mappings: [
+      { key: "h", output: "←", description: "Move left" },
+      { key: "j", output: "↓", description: "Move down" },
+      { key: "k", output: "↑", description: "Move up" },
+      { key: "l", output: "→", description: "Move right" },
+      { key: "u", output: "PgUp", description: "Page up" },
+      { key: "i", output: "PgDn", description: "Page down" },
+      { key: "n", output: "Home", description: "Start of line" },
+      { key: "m", output: "End", description: "End of line" },
+      { key: "y", output: "⌥←", description: "Previous word" },
+      { key: "o", output: "⌥→", description: "Next word" },
+      { key: "x", output: "Del", description: "Delete forward" },
+      { key: ";", output: "⇧→", description: "Select right" },
+      { key: "a", output: "⇧←", description: "Select left" },
+    ],
+  };
+  doc += generateLayerVisualization(navigationLayer);
+  doc += `> **💡 TIP:** This is the most useful layer for reducing hand movement! Practice HJKL navigation in your editor.\n\n`;
+
+  // Function Keys Layer
+  const functionKeysLayer: Layer = {
+    name: "Function Keys Layer",
+    trigger: "Hold Spacebar + F simultaneously",
+    mappings: [
+      { key: "1", output: "F1" },
+      { key: "2", output: "F2" },
+      { key: "3", output: "F3" },
+      { key: "4", output: "F4" },
+      { key: "5", output: "F5" },
+      { key: "6", output: "F6" },
+      { key: "7", output: "F7" },
+      { key: "8", output: "F8" },
+      { key: "9", output: "F9" },
+      { key: "0", output: "F10" },
+      { key: "hyphen", output: "F11" },
+      { key: "equal_sign", output: "F12" },
+      { key: "r", output: "F5", description: "Quick refresh" },
+      { key: "d", output: "F12", description: "Quick dev tools" },
+    ],
+  };
+  doc += generateLayerVisualization(functionKeysLayer);
+  doc += `> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)\n\n`;
+
+  // Media Controls Layer
+  const mediaLayer: Layer = {
+    name: "Media & System Control Layer",
+    trigger: "Hold Spacebar + M simultaneously",
+    mappings: [
+      { key: "h", output: "🔉", description: "Volume down" },
+      { key: "l", output: "🔊", description: "Volume up" },
+      { key: "j", output: "🔇", description: "Mute" },
+      { key: "u", output: "🔅", description: "Brightness down" },
+      { key: "o", output: "🔆", description: "Brightness up" },
+      { key: "n", output: "⏮", description: "Previous track" },
+      { key: ",", output: "⏯", description: "Play/Pause" },
+      { key: ".", output: "⏭", description: "Next track" },
+      { key: "k", output: "Mission", description: "Mission Control" },
+      { key: "i", output: "Launchpad", description: "Launchpad" },
+      { key: "q", output: "🔒", description: "Lock screen" },
+    ],
+  };
+  doc += generateLayerVisualization(mediaLayer);
+  doc += `> **💡 TIP:** Control volume and brightness without leaving the keyboard!\n\n`;
+
+  // Numpad Layer
+  const numpadLayer: Layer = {
+    name: "Numpad Layer (Right-hand)",
+    trigger: "Hold Spacebar + N simultaneously",
+    mappings: [
+      { key: "u", output: "7" },
+      { key: "i", output: "8" },
+      { key: "o", output: "9" },
+      { key: "j", output: "4" },
+      { key: "k", output: "5" },
+      { key: "l", output: "6" },
+      { key: "m", output: "1" },
+      { key: ",", output: "2" },
+      { key: ".", output: "3" },
+      { key: "h", output: "0" },
+      { key: "spacebar", output: "0", description: "Thumb zero" },
+      { key: "p", output: "+", description: "Plus" },
+      { key: ";", output: "-", description: "Minus" },
+      { key: "'", output: "*", description: "Multiply" },
+      { key: "/", output: "/", description: "Divide" },
+    ],
+  };
+  doc += generateLayerVisualization(numpadLayer);
+  doc += `> **💡 TIP:** Perfect for spreadsheets and data entry on laptops without numpads!\n\n`;
+
+  // Mouse Control Layer (commented)
+  doc += `### Mouse Control Layer (Disabled)\n\n`;
+  doc += `**Trigger:** Hold Spacebar + C simultaneously\n\n`;
+  doc += `This advanced layer provides keyboard-based mouse control. It's disabled by default.\n\n`;
+  doc += `To enable: Uncomment the layer in \`my-index.ts\` (around line 241)\n\n`;
+  doc += `> **⚠️ WARNING:** Requires "Manipulate pointer" permission in System Preferences > Security & Privacy > Accessibility\n\n`;
+
+  doc += `---\n\n`;
+
   // Add commented symbol layers as examples
-  doc += `## Commented Out Layers\n\n`;
-  doc += `The following layers are currently disabled but available for activation:\n\n`;
+  doc += `## Commented Out / Experimental Layers\n\n`;
+  doc += `The following layers are currently disabled but available for experimentation:\n\n`;
 
   // Symbol Hyper Layer
   const symbolHyperLayer: Layer = {

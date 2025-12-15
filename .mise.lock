@@ -1,8 +1,0 @@
-[[tools.node]]
-version = "24.10.0"
-backend = "core:node"
-
-[tools.node.platforms.macos-arm64]
-checksum = "sha256:fbc3d6e1e1d962450d058e918214373872cc4c46e08673f31c35932afac4a8c5"
-size = 51169103
-url = "https://nodejs.org/dist/v24.10.0/node-v24.10.0-darwin-arm64.tar.gz"

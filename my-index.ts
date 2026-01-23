@@ -47,6 +47,249 @@ writeToProfile(
         .to("caps_lock"),
     ]),
 
+    // ============================================================================
+    // ACTIVE LAYERS - Productivity & Navigation
+    // ============================================================================
+    //
+    // USAGE TIP: These layers are designed to keep your hands on the home row
+    // and reduce reaching for arrows, function keys, and media controls.
+    //
+    // All layers use dual-key triggers to avoid accidental activation while typing.
+    // Adjust triggers if you find conflicts with your typing patterns.
+
+    // ============================================================================
+    // Navigation Layer - Vim-style arrows and navigation
+    // ============================================================================
+    // TRIGGER: Hold Spacebar + D simultaneously
+    //
+    // This is the MOST USEFUL layer for programmers and writers. It eliminates
+    // the need to move your right hand to the arrow cluster.
+    //
+    // WHY SPACEBAR + D?
+    // - Spacebar is easy to reach with either thumb
+    // - D is on the home row (left hand)
+    // - Leaves right hand free for navigation
+    // - Different hand for trigger vs navigation reduces conflicts
+    //
+    // TIP: Practice in your editor first. The muscle memory builds quickly!
+    duoLayer("spacebar", "d")
+      .description("Navigation Layer (Vim-style)")
+      .manipulators([
+        // Arrow keys - Vim style (most important mappings)
+        map("h").to("left_arrow"), // Move left
+        map("j").to("down_arrow"), // Move down
+        map("k").to("up_arrow"), // Move up
+        map("l").to("right_arrow"), // Move right
+
+        // Page navigation
+        map("u").to("page_up"), // Page up (think "up" in the alphabet)
+        map("i").to("page_down"), // Page down (next to u)
+
+        // Line navigation
+        map("n").to("home"), // Start of line (think "nice and early")
+        map("m").to("end"), // End of line (next to n)
+
+        // Word jumping (with Option modifier for macOS)
+        map("y").to("left_arrow", ["left_option"]), // Previous word
+        map("o").to("right_arrow", ["left_option"]), // Next word
+
+        // Deletion (commonly used with navigation)
+        map("x").to("delete_forward"), // Delete character forward
+        map("delete_or_backspace").to("delete_or_backspace"), // Keep backspace working
+
+        // Selection shortcuts (with Shift)
+        map("semicolon").to("right_arrow", ["left_shift"]), // Select right
+        map("a").to("left_arrow", ["left_shift"]), // Select left
+      ]),
+
+    // ============================================================================
+    // Function Keys Layer - F1-F12 without reaching
+    // ============================================================================
+    // TRIGGER: Hold Spacebar + F simultaneously
+    //
+    // WHY THIS LAYER?
+    // - Function keys are far away on most keyboards
+    // - Commonly used for debugging (F5-F12), IDE shortcuts, etc.
+    // - Laptop keyboards often require Fn key + number (awkward)
+    //
+    // TIP: Great for IDE debugging - F8 (step over), F9 (breakpoint), F10 (step into)
+    duoLayer("spacebar", "f")
+      .description("Function Keys Layer")
+      .manipulators([
+        // F1-F10 on number row
+        map("1").to("f1"),
+        map("2").to("f2"),
+        map("3").to("f3"),
+        map("4").to("f4"),
+        map("5").to("f5"),
+        map("6").to("f6"),
+        map("7").to("f7"),
+        map("8").to("f8"),
+        map("9").to("f9"),
+        map("0").to("f10"),
+
+        // F11-F12 on special keys
+        map("hyphen").to("f11"), // Next to 0
+        map("equal_sign").to("f12"), // Next to hyphen
+
+        // Bonus: Quick access to common function key combos
+        map("r").to("f5"), // Refresh (common in browsers/IDEs)
+        map("d").to("f12"), // Developer tools (common browser shortcut)
+      ]),
+
+    // ============================================================================
+    // Media & System Control Layer
+    // ============================================================================
+    // TRIGGER: Hold Spacebar + M simultaneously
+    //
+    // WHY THIS LAYER?
+    // - No need to reach for dedicated media keys
+    // - Control volume/brightness without looking
+    // - Works on any keyboard (even those without media keys)
+    //
+    // TIP: The layout mirrors common media key positions (left for volume, right for brightness)
+    duoLayer("spacebar", "m")
+      .description("Media & System Control Layer")
+      .manipulators([
+        // Volume control (left side - easy to remember)
+        map("h").to("volume_decrement"), // Volume down
+        map("l").to("volume_increment"), // Volume up
+        map("j").to("mute"), // Mute/unmute
+
+        // Brightness control (right side)
+        map("u").to("display_brightness_decrement"), // Brightness down
+        map("o").to("display_brightness_increment"), // Brightness up
+
+        // Playback controls (bottom row - like media buttons)
+        map("n").to("rewind"), // Previous track
+        map("comma").to("play_or_pause"), // Play/Pause (center position)
+        map("period").to("fastforward"), // Next track
+
+        // System controls
+        map("k").to("mission_control"), // macOS Mission Control
+        map("i").to("launchpad"), // macOS Launchpad
+
+        // Lock screen (Security)
+        map("q").to("q", ["left_control", "left_command"]), // Cmd+Ctrl+Q locks screen on macOS
+      ]),
+
+    // ============================================================================
+    // Numpad Layer - Right-hand number pad
+    // ============================================================================
+    // TRIGGER: Hold Spacebar + N simultaneously
+    //
+    // WHY THIS LAYER?
+    // - Laptops don't have numpads
+    // - Useful for data entry, calculations
+    // - Right-hand keeps natural numpad position
+    //
+    // LAYOUT MIMICS STANDARD NUMPAD:
+    //   7 8 9
+    //   4 5 6
+    //   1 2 3
+    //     0
+    //
+    // TIP: Great for spreadsheet work or quick calculations
+    duoLayer("spacebar", "n")
+      .description("Numpad Layer (Right-hand)")
+      .manipulators([
+        // Top row - 7, 8, 9
+        map("u").to("7"),
+        map("i").to("8"),
+        map("o").to("9"),
+
+        // Middle row - 4, 5, 6
+        map("j").to("4"),
+        map("k").to("5"),
+        map("l").to("6"),
+
+        // Bottom row - 1, 2, 3
+        map("m").to("1"),
+        map("comma").to("2"),
+        map("period").to("3"),
+
+        // Zero and operators
+        map("spacebar").to("0"), // Space becomes 0 (easy thumb access)
+        map("h").to("0"), // Alternative 0 position
+
+        // Math operators (left hand stays free)
+        map("p").to("equal_sign", ["left_shift"]), // Plus +
+        map("semicolon").to("hyphen"), // Minus -
+        map("quote").to("8", ["left_shift"]), // Multiply *
+        map("slash").to("slash"), // Divide /
+        map("return_or_enter").to("return_or_enter"), // Enter for calculations
+      ]),
+
+    // ============================================================================
+    // Mouse Control Layer (OPTIONAL - Advanced)
+    // ============================================================================
+    // TRIGGER: Hold Spacebar + C simultaneously
+    //
+    // WHY THIS LAYER?
+    // - Control mouse without taking hands off keyboard
+    // - Useful for presentations or when mouse is unavailable
+    // - Accessibility feature
+    //
+    // WARNING: Mouse control requires Karabiner's "Manipulate pointer" permission
+    // Enable in: System Preferences > Security & Privacy > Accessibility
+    //
+    // TIP: This is advanced - you may want to disable if not needed
+    // Comment out this entire layer if you don't use mouse keyboard control
+    //
+    // DISABLED BY DEFAULT - Uncomment to enable:
+    // duoLayer("spacebar", "c")
+    //   .description("Mouse Control Layer")
+    //   .manipulators([
+    //     // Mouse movement (Vim-style)
+    //     map("h").to({ mouse_key: { x: -1536 } }), // Move left
+    //     map("j").to({ mouse_key: { y: 1536 } }), // Move down
+    //     map("k").to({ mouse_key: { y: -1536 } }), // Move up
+    //     map("l").to({ mouse_key: { x: 1536 } }), // Move right
+    //
+    //     // Fast movement (with shift modifier)
+    //     map("u").to({ mouse_key: { x: -3072 } }), // Fast left
+    //     map("i").to({ mouse_key: { y: -3072 } }), // Fast up
+    //     map("o").to({ mouse_key: { x: 3072 } }), // Fast right
+    //     map("m").to({ mouse_key: { y: 3072 } }), // Fast down
+    //
+    //     // Mouse clicks
+    //     map("f").to({ pointing_button: "button1" }), // Left click
+    //     map("d").to({ pointing_button: "button2" }), // Right click
+    //     map("s").to({ pointing_button: "button3" }), // Middle click
+    //
+    //     // Scroll wheel
+    //     map("y").to({ mouse_key: { vertical_wheel: -32 } }), // Scroll up
+    //     map("n").to({ mouse_key: { vertical_wheel: 32 } }), // Scroll down
+    //   ]),
+
+    // ============================================================================
+    // CAPS Lock Enhancement - Temporary Lowercase
+    // ============================================================================
+    // FEATURE: When CAPS LOCK is active, hold any Home Row Mod key for lowercase
+    //
+    // WHY THIS WORKS:
+    // Your Home Row Mods already include Shift on F and J.
+    // When CAPS is on, holding Shift inverts to lowercase (standard behavior).
+    //
+    // USAGE:
+    // 1. Activate CAPS LOCK (press both Shift keys simultaneously)
+    // 2. To type ONE lowercase letter: Hold F or J while typing the letter
+    // 3. To type MULTIPLE lowercase: Hold F or J and type multiple letters
+    //
+    // EXAMPLE:
+    // - CAPS on, type "hello" → HELLO
+    // - CAPS on, hold F, type "h" → H (wait, that's uppercase)
+    // - Actually: CAPS + Shift = lowercase (this is standard keyboard behavior!)
+    //
+    // TIP: This is already built into your Home Row Mods! No code needed.
+    // Just hold F (left shift) or J (right shift) when CAPS is active.
+
+    // ============================================================================
+    // COMMENTED OUT / EXPERIMENTAL LAYERS
+    // ============================================================================
+    // The following layers are disabled but available for experimentation.
+    // Uncomment and modify as needed.
+
     // Number and Symbol Layer - Optimized for programming
     // Trigger: Hold Spacebar + V simultaneously, then press any key below
     // Works on both laptop and external keyboards

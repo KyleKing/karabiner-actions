@@ -5,6 +5,8 @@
   "main": "my-index.ts",
   "scripts": {
     "build": "tsx my-index.ts",
+    "docs": "tsx generate-docs.ts > LAYERS.md && echo 'Documentation generated: LAYERS.md'",
+    "docs:preview": "tsx generate-docs.ts",
     "check": "npm run check:types && npm run check:biome",
     "check:types": "tsc --noEmit",
     "check:biome": "biome check .",

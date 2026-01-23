@@ -1,6 +1,5 @@
 import {
   duoLayer,
-  hyperLayer,
   ifVar,
   map,
   mapSimultaneous,
@@ -48,88 +47,52 @@ writeToProfile(
         .to("caps_lock"),
     ]),
 
-    // // // Symbol Layer
-    // // rule(`Symbol Layer Remapping`).manipulators([
-    // //   map("right_command").toHyper(), // Interferes with tab navigation
-    // // ]),
-    // hyperLayer("g")
-    //   .description("Symbol Hyper Layer")
-    //   .leaderMode({
-    //     sticky: true,
-    //     escape: [
-    //       "caps_lock",
-    //       "escape",
-    //       "return_or_enter",
-    //       "right_command",
-    //       "spacebar",
-    //     ],
-    //   })
-    //   // .notification() // Recommended
-    //   .manipulators([
-    //     map("j").to("9", ["left_shift"]), // Left parenthesis (
-    //     map("k").to("0", ["left_shift"]), // Right parenthesis )
-    //     map("u").to("["),
-    //     map("i").to("]"),
-    //     map("m").to("[", ["left_shift"]), // Left curly {
-    //     map(",").to("]", ["left_shift"]), // Right curly }
-    //   ]),
-    //
-    // // Symbol Duo Layer (using spacebar+g combo)
-    // duoLayer("spacebar", "g")
-    //   .description("Symbol Chord Layer")
-    //   .manipulators([
-    //     map("j").to("9", ["left_shift"]), // Left parenthesis (
-    //     map("k").to("0", ["left_shift"]), // Right parenthesis )
-    //     map("u").to("["), // Left square bracket
-    //     map("i").to("]"), // Right square bracket
-    //     map("h").to("open_bracket", ["left_shift"]), // Left curly {
-    //     map("l").to("close_bracket", ["left_shift"]), // Right curly }
-    //     map("n").to("comma", ["left_shift"]), // Left angle bracket <
-    //     map("m").to("period", ["left_shift"]), // Right angle bracket >
-    //     map("1").to("1", ["left_shift"]), // Exclamation mark !
-    //     map("2").to("2", ["left_shift"]), // At symbol @
-    //     map("3").to("3", ["left_shift"]), // Hash/pound #
-    //     map("4").to("4", ["left_shift"]), // Dollar sign $
-    //     map("5").to("5", ["left_shift"]), // Percent %
-    //     map("6").to("6", ["left_shift"]), // Caret ^
-    //     map("7").to("7", ["left_shift"]), // Ampersand &
-    //     map("8").to("8", ["left_shift"]), // Asterisk *
-    //     map("9").to("9", ["left_shift"]), // Open parenthesis (
-    //     map("0").to("0", ["left_shift"]), // Close parenthesis )
-    //     map("hyphen").to("hyphen", ["left_shift"]), // Underscore _
-    //     map("equal_sign").to("equal_sign", ["left_shift"]), // Plus +
-    //   ]),
-    //
-    // // Parentheses Layer
-    // hyperLayer("p")
-    //   .description("Parentheses and Brackets Layer")
-    //   .leaderMode({
-    //     sticky: false, // Non-sticky mode: needs to be held down
-    //   })
-    //   .manipulators([
-    //     map("j").to("9", ["left_shift"]), // Left parenthesis (
-    //     map("k").to("0", ["left_shift"]), // Right parenthesis )
-    //     map("u").to("["), // Left square bracket [
-    //     map("i").to("]"), // Right square bracket ]
-    //     map("h").to("open_bracket", ["left_shift"]), // Left curly {
-    //     map("l").to("close_bracket", ["left_shift"]), // Right curly }
-    //     map("n").to("comma", ["left_shift"]), // Left angle bracket <
-    //     map("m").to("period", ["left_shift"]), // Right angle bracket >
-    //   ]),
-    //
-    // // Numbers Layer
-    // duoLayer("v", "m").manipulators([
-    //   map("h").to(0),
-    //   map("m").to(1),
-    //   map(",").to(2),
-    //   map(".").to(3),
-    //   map("j").to(4),
-    //   map("k").to(5),
-    //   map("l").to(6),
-    //   map("u").to(7),
-    //   map("i").to(8),
-    //   map("o").to(9),
-    // ]),
+    // Number and Symbol Layer - Optimized for programming
+    // Trigger: Hold Spacebar + V simultaneously, then press any key below
+    // Works on both laptop and external keyboards
+    duoLayer("spacebar", "v")
+      .description("Number & Symbol Layer (Space+V)")
+      .manipulators([
+        // Numbers on top row (1-0)
+        map("q").to("1"),
+        map("w").to("2"),
+        map("e").to("3"),
+        map("r").to("4"),
+        map("t").to("5"),
+        map("y").to("6"),
+        map("u").to("7"),
+        map("i").to("8"),
+        map("o").to("9"),
+        map("p").to("0"),
+
+        // Shifted numbers on home row for symbols (!, @, #, $, %, ^, &, *, (, ))
+        map("a").to("1", ["left_shift"]), // !
+        map("s").to("2", ["left_shift"]), // @
+        map("d").to("3", ["left_shift"]), // #
+        map("f").to("4", ["left_shift"]), // $
+        map("g").to("5", ["left_shift"]), // %
+        map("h").to("6", ["left_shift"]), // ^
+        map("j").to("7", ["left_shift"]), // &
+        map("k").to("8", ["left_shift"]), // *
+        map("l").to("9", ["left_shift"]), // (
+        map(";").to("0", ["left_shift"]), // )
+
+        // Brackets and braces on bottom row (easy to reach)
+        map("z").to("open_bracket", ["left_shift"]), // {
+        map("x").to("["), // [
+        map("c").to("9", ["left_shift"]), // (
+        map("v").to("comma", ["left_shift"]), // <
+        map("b").to("period", ["left_shift"]), // >
+        map("n").to("0", ["left_shift"]), // )
+        map("m").to("]"), // ]
+        map(",").to("close_bracket", ["left_shift"]), // }
+
+        // Common operators
+        map(".").to("equal_sign"), // =
+        map("/").to("equal_sign", ["left_shift"]), // +
+        map("hyphen").to("hyphen"), // -
+        map("equal_sign").to("hyphen", ["left_shift"]), // _
+      ]),
 
     // Home row mods
     rule(
@@ -137,10 +100,11 @@ writeToProfile(
     ).manipulators([
       //
       // Four - left hand
-      mapSimultaneous([L_SHIFT, L_CTRL, L_ALT, L_GUI]).toIfHeldDown(
-        "left_shift",
-        ["left_control", "left_option", "left_command"],
-      ),
+      mapSimultaneous([L_SHIFT, L_CTRL, L_ALT, L_GUI]).toIfHeldDown("left_shift", [
+        "left_control",
+        "left_option",
+        "left_command",
+      ]),
       //
       // Three - left hand
       mapSimultaneous([L_SHIFT, L_CTRL, L_ALT]).toIfHeldDown("left_shift", [
@@ -222,15 +186,16 @@ writeToProfile(
         .toIfHeldDown("left_option", {}, { halt: true }),
       map(L_GUI)
         .toIfAlone(L_GUI, {}, { halt: true })
-        .toDelayedAction(toKey("vk_none"), toKey(L_GUI, {}, { halt: true }))
+        .toDelayedAction(toKey("vk_none"), toKey(L_GUI))
         .toIfHeldDown("left_command", {}, { halt: true }),
       //
       //
       // Four - right hand
-      mapSimultaneous([R_GUI, R_ALT, R_CTRL, R_SHIFT]).toIfHeldDown(
-        "right_shift",
-        ["right_control", "right_option", "right_command"],
-      ),
+      mapSimultaneous([R_GUI, R_ALT, R_CTRL, R_SHIFT]).toIfHeldDown("right_shift", [
+        "right_control",
+        "right_option",
+        "right_command",
+      ]),
       //
       // Three - right hand
       mapSimultaneous([R_SHIFT, R_CTRL, R_ALT]).toIfHeldDown("right_shift", [

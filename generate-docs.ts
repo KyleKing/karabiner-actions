@@ -23,35 +23,6 @@ const KEYBOARD_LAYOUT = {
   special: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "hyphen", "equal_sign"],
 };
 
-// Symbol mapping for display
-const SYMBOL_MAP: Record<string, string> = {
-  "1|left_shift": "!",
-  "2|left_shift": "@",
-  "3|left_shift": "#",
-  "4|left_shift": "$",
-  "5|left_shift": "%",
-  "6|left_shift": "^",
-  "7|left_shift": "&",
-  "8|left_shift": "*",
-  "9|left_shift": "(",
-  "0|left_shift": ")",
-  "open_bracket|left_shift": "{",
-  "close_bracket|left_shift": "}",
-  "[": "[",
-  "]": "]",
-  "comma|left_shift": "<",
-  "period|left_shift": ">",
-  "hyphen|left_shift": "_",
-  "equal_sign|left_shift": "+",
-  hyphen: "-",
-  equal_sign: "=",
-};
-
-function getSymbol(output: string, modifiers: string[] = []): string {
-  const key = modifiers.length > 0 ? `${output}|${modifiers[0]}` : output;
-  return SYMBOL_MAP[key] || output;
-}
-
 function generateKeyboardRow(keys: string[], mappings: Map<string, string>): string {
   const keyStrings = keys.map((key) => {
     const output = mappings.get(key) || key;
@@ -155,6 +126,7 @@ function generateDocs(): string {
   doc += `## Active Layers\n\n`;
   doc += `The following layers are currently active and ready to use. All use dual-key triggers to avoid accidental activation.\n\n`;
 
+  // NOTE: Layer mappings below must be kept in sync with my-index.ts
   // Navigation Layer
   const navigationLayer: Layer = {
     name: "Navigation Layer (Vim-style)",

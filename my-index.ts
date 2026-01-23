@@ -429,7 +429,7 @@ writeToProfile(
         .toIfHeldDown("left_option", {}, { halt: true }),
       map(L_GUI)
         .toIfAlone(L_GUI, {}, { halt: true })
-        .toDelayedAction(toKey("vk_none"), toKey(L_GUI))
+        .toDelayedAction(toKey("vk_none"), toKey(L_GUI, {}, { halt: true }))
         .toIfHeldDown("left_command", {}, { halt: true }),
       //
       //

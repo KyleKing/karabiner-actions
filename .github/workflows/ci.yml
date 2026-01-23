@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run check:types
+
+      - name: Lint
+        run: npm run check:biome
+
+      - name: Verify LAYERS.md is up to date
+        run: |
+          npm run docs
+          git diff --exit-code LAYERS.md || {
+            echo "LAYERS.md is out of sync with generate-docs.ts"
+            echo "Run 'npm run docs' and commit the changes"
+            exit 1
+          }

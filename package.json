@@ -27,6 +27,7 @@
   "homepage": "https://github.com/KyleKing/karabiner-actions#readme",
   "devDependencies": {
     "@biomejs/biome": "2.3.6",
+    "@types/node": "^25.0.10",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3"
   },

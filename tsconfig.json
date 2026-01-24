@@ -3,8 +3,8 @@
     // Language and environment
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
 
     // Type checking
     "strict": true,
@@ -29,6 +29,5 @@
     // Skip type checking for node_modules
     "skipLibCheck": true
   },
-  "include": ["*.d.ts", "*.ts"],
   "exclude": ["node_modules"]
 }

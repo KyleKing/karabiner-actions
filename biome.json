@@ -30,7 +30,6 @@
   },
   "overrides": [
     {
-      "includes": ["*.d.ts"],
       "linter": {
         "rules": {
           "suspicious": {

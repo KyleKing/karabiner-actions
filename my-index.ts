@@ -22,6 +22,24 @@ const R_GUI = ";";
 
 const KEY_DOWN_ORDER = "insensitive"; // strict is recommended if issues
 
+// duoLayer triggers. A duoLayer is matched before the Home Row Mods rule, so a
+// trigger sharing a mod key (a s d f j k l ;) shadows that modifier whenever the
+// spacebar chord lands first. Pick letters that are also rare at the start of a
+// word, since the chord is spacebar-then-letter.
+const NAV_LAYER = "g";
+const MEDIA_LAYER = "m";
+const NUMPAD_LAYER = "n";
+const SYMBOL_LAYER = "v";
+
+// Every spacebar duoLayer withholds the spacebar keypress until this window
+// closes, so it must track basic.simultaneous_threshold_milliseconds below.
+// Without it karabiner.ts bakes in duo_layer.threshold_milliseconds (200).
+const DUO_THRESHOLD = 45;
+
+// Only spacebar-first opens a layer, so a word ending in a trigger letter
+// followed by a space still types normally.
+const DUO_OPTIONS = { key_down_order: "strict" } as const;
+
 writeToProfile(
   "Default profile",
   [
@@ -55,24 +73,25 @@ writeToProfile(
     // and reduce reaching for arrows, function keys, and media controls.
     //
     // All layers use dual-key triggers to avoid accidental activation while typing.
-    // Adjust triggers if you find conflicts with your typing patterns.
+    // Adjust triggers via the *_LAYER constants above if you hit conflicts.
 
     // ============================================================================
     // Navigation Layer - Vim-style arrows and navigation
     // ============================================================================
-    // TRIGGER: Hold Spacebar + D simultaneously
+    // TRIGGER: Hold Spacebar, then G
     //
     // This is the MOST USEFUL layer for programmers and writers. It eliminates
     // the need to move your right hand to the arrow cluster.
     //
-    // WHY SPACEBAR + D?
+    // WHY SPACEBAR + G?
     // - Spacebar is easy to reach with either thumb
-    // - D is on the home row (left hand)
-    // - Leaves right hand free for navigation
-    // - Different hand for trigger vs navigation reduces conflicts
+    // - G is a left-index stretch, so it costs no home row mod
+    // - Leaves the right hand free for HJKL navigation
     //
     // TIP: Practice in your editor first. The muscle memory builds quickly!
-    duoLayer("spacebar", "d")
+    duoLayer("spacebar", NAV_LAYER)
+      .threshold(DUO_THRESHOLD)
+      .options(DUO_OPTIONS)
       .description("Navigation Layer (Vim-style)")
       .manipulators([
         // Arrow keys - Vim style (most important mappings)
@@ -103,44 +122,37 @@ writeToProfile(
       ]),
 
     // ============================================================================
-    // Function Keys Layer - F1-F12 without reaching
+    // Function Keys Layer - F1-F12 without reaching (DISABLED)
     // ============================================================================
-    // TRIGGER: Hold Spacebar + F simultaneously
+    // Disabled because F is left Shift and is the most common word-initial letter
+    // of the candidate triggers, so it is the trigger most likely to eat a mod.
+    // To try it, add a const alongside the other *_LAYER triggers and uncomment.
     //
-    // WHY THIS LAYER?
-    // - Function keys are far away on most keyboards
-    // - Commonly used for debugging (F5-F12), IDE shortcuts, etc.
-    // - Laptop keyboards often require Fn key + number (awkward)
-    //
-    // TIP: Great for IDE debugging - F8 (step over), F9 (breakpoint), F10 (step into)
-    duoLayer("spacebar", "f")
-      .description("Function Keys Layer")
-      .manipulators([
-        // F1-F10 on number row
-        map("1").to("f1"),
-        map("2").to("f2"),
-        map("3").to("f3"),
-        map("4").to("f4"),
-        map("5").to("f5"),
-        map("6").to("f6"),
-        map("7").to("f7"),
-        map("8").to("f8"),
-        map("9").to("f9"),
-        map("0").to("f10"),
-
-        // F11-F12 on special keys
-        map("hyphen").to("f11"), // Next to 0
-        map("equal_sign").to("f12"), // Next to hyphen
-
-        // Bonus: Quick access to common function key combos
-        map("r").to("f5"), // Refresh (common in browsers/IDEs)
-        map("d").to("f12"), // Developer tools (common browser shortcut)
-      ]),
+    // duoLayer("spacebar", FUNCTION_LAYER)
+    //   .threshold(DUO_THRESHOLD)
+    //   .options(DUO_OPTIONS)
+    //   .description("Function Keys Layer")
+    //   .manipulators([
+    //     map("1").to("f1"),
+    //     map("2").to("f2"),
+    //     map("3").to("f3"),
+    //     map("4").to("f4"),
+    //     map("5").to("f5"),
+    //     map("6").to("f6"),
+    //     map("7").to("f7"),
+    //     map("8").to("f8"),
+    //     map("9").to("f9"),
+    //     map("0").to("f10"),
+    //     map("hyphen").to("f11"),
+    //     map("equal_sign").to("f12"),
+    //     map("r").to("f5"), // Refresh (common in browsers/IDEs)
+    //     map("d").to("f12"), // Developer tools (common browser shortcut)
+    //   ]),
 
     // ============================================================================
     // Media & System Control Layer
     // ============================================================================
-    // TRIGGER: Hold Spacebar + M simultaneously
+    // TRIGGER: Hold Spacebar, then M
     //
     // WHY THIS LAYER?
     // - No need to reach for dedicated media keys
@@ -148,7 +160,9 @@ writeToProfile(
     // - Works on any keyboard (even those without media keys)
     //
     // TIP: The layout mirrors common media key positions (left for volume, right for brightness)
-    duoLayer("spacebar", "m")
+    duoLayer("spacebar", MEDIA_LAYER)
+      .threshold(DUO_THRESHOLD)
+      .options(DUO_OPTIONS)
       .description("Media & System Control Layer")
       .manipulators([
         // Volume control (left side - easy to remember)
@@ -176,7 +190,7 @@ writeToProfile(
     // ============================================================================
     // Numpad Layer - Right-hand number pad
     // ============================================================================
-    // TRIGGER: Hold Spacebar + N simultaneously
+    // TRIGGER: Hold Spacebar, then N
     //
     // WHY THIS LAYER?
     // - Laptops don't have numpads
@@ -190,7 +204,9 @@ writeToProfile(
     //     0
     //
     // TIP: Great for spreadsheet work or quick calculations
-    duoLayer("spacebar", "n")
+    duoLayer("spacebar", NUMPAD_LAYER)
+      .threshold(DUO_THRESHOLD)
+      .options(DUO_OPTIONS)
       .description("Numpad Layer (Right-hand)")
       .manipulators([
         // Top row - 7, 8, 9
@@ -293,7 +309,9 @@ writeToProfile(
     // Number and Symbol Layer - Optimized for programming
     // Trigger: Hold Spacebar + V simultaneously, then press any key below
     // Works on both laptop and external keyboards
-    duoLayer("spacebar", "v")
+    duoLayer("spacebar", SYMBOL_LAYER)
+      .threshold(DUO_THRESHOLD)
+      .options(DUO_OPTIONS)
       .description("Number & Symbol Layer (Space+V)")
       .manipulators([
         // Numbers on top row (1-0)

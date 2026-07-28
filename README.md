@@ -29,13 +29,15 @@ npm run docs:preview
 
 ### Active Layers
 
-All layers use dual-key triggers (Spacebar + key) to avoid accidental activation:
+All layers trigger on spacebar first, then the layer key, within a 45ms window:
 
-- **Navigation Layer** (`Space + D`): Vim-style HJKL navigation, page up/down, home/end, word jumping
-- **Function Keys** (`Space + F`): F1-F12 without reaching
-- **Media Controls** (`Space + M`): Volume, brightness, playback controls
-- **Numpad** (`Space + N`): Right-hand numpad layout for data entry
-- **Mouse Control** (`Space + C`): _Disabled by default_ - keyboard-based mouse control
+- **Navigation Layer** (`Space → G`): Vim-style HJKL navigation, page up/down, home/end, word jumping
+- **Media Controls** (`Space → M`): Volume, brightness, playback controls
+- **Numpad** (`Space → N`): Right-hand numpad layout for data entry
+- **Number & Symbols** (`Space → V`): Number row on QWERTY, shifted symbols on the home row
+- **Function Keys** and **Mouse Control**: _disabled_ - uncomment in `my-index.ts` to try them
+
+Two constraints keep layers from interfering with typing. Triggers avoid the home row mod keys (`a s d f j k l ;`), because a duoLayer is matched before the Home Row Mods rule and would shadow that modifier. And the trigger window tracks `basic.simultaneous_threshold_milliseconds` rather than karabiner.ts's 200ms default, since every spacebar duoLayer withholds the spacebar keypress until that window closes.
 
 ### Home Row Mods (GACS Layout)
 

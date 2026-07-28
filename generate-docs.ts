@@ -124,13 +124,14 @@ function generateDocs(): string {
   // Add Active Productivity Layers
   doc += `---\n\n`;
   doc += `## Active Layers\n\n`;
-  doc += `The following layers are currently active and ready to use. All use dual-key triggers to avoid accidental activation.\n\n`;
+  doc += `The following layers are currently active and ready to use. Every trigger is spacebar-first with a 45ms window, matching the home row mod threshold, so a word ending in a trigger letter followed by a space still types normally.\n\n`;
+  doc += `No trigger uses a home row mod key (a s d f j k l ;), because a duoLayer is matched before the Home Row Mods rule and would shadow that modifier.\n\n`;
 
   // NOTE: Layer mappings below must be kept in sync with my-index.ts
   // Navigation Layer
   const navigationLayer: Layer = {
     name: "Navigation Layer (Vim-style)",
-    trigger: "Hold Spacebar + D simultaneously",
+    trigger: "Hold Spacebar, then G",
     mappings: [
       { key: "h", output: "←", description: "Move left" },
       { key: "j", output: "↓", description: "Move down" },
@@ -152,8 +153,8 @@ function generateDocs(): string {
 
   // Function Keys Layer
   const functionKeysLayer: Layer = {
-    name: "Function Keys Layer",
-    trigger: "Hold Spacebar + F simultaneously",
+    name: "Function Keys Layer (Disabled)",
+    trigger: "None — F is left Shift, so this layer ships disabled",
     mappings: [
       { key: "1", output: "F1" },
       { key: "2", output: "F2" },
@@ -171,13 +172,10 @@ function generateDocs(): string {
       { key: "d", output: "F12", description: "Quick dev tools" },
     ],
   };
-  doc += generateLayerVisualization(functionKeysLayer);
-  doc += `> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)\n\n`;
-
   // Media Controls Layer
   const mediaLayer: Layer = {
     name: "Media & System Control Layer",
-    trigger: "Hold Spacebar + M simultaneously",
+    trigger: "Hold Spacebar, then M",
     mappings: [
       { key: "h", output: "🔉", description: "Volume down" },
       { key: "l", output: "🔊", description: "Volume up" },
@@ -198,7 +196,7 @@ function generateDocs(): string {
   // Numpad Layer
   const numpadLayer: Layer = {
     name: "Numpad Layer (Right-hand)",
-    trigger: "Hold Spacebar + N simultaneously",
+    trigger: "Hold Spacebar, then N",
     mappings: [
       { key: "u", output: "7" },
       { key: "i", output: "8" },
@@ -220,18 +218,62 @@ function generateDocs(): string {
   doc += generateLayerVisualization(numpadLayer);
   doc += `> **💡 TIP:** Perfect for spreadsheets and data entry on laptops without numpads!\n\n`;
 
+  // Number & Symbol Layer
+  const symbolLayer: Layer = {
+    name: "Number & Symbol Layer",
+    trigger: "Hold Spacebar, then V",
+    mappings: [
+      { key: "q", output: "1" },
+      { key: "w", output: "2" },
+      { key: "e", output: "3" },
+      { key: "r", output: "4" },
+      { key: "t", output: "5" },
+      { key: "y", output: "6" },
+      { key: "u", output: "7" },
+      { key: "i", output: "8" },
+      { key: "o", output: "9" },
+      { key: "p", output: "0" },
+      { key: "a", output: "!" },
+      { key: "s", output: "@" },
+      { key: "d", output: "#" },
+      { key: "f", output: "$" },
+      { key: "g", output: "%" },
+      { key: "h", output: "^" },
+      { key: "j", output: "&" },
+      { key: "k", output: "*" },
+      { key: "l", output: "(" },
+      { key: ";", output: ")" },
+      { key: "z", output: "{" },
+      { key: "x", output: "[" },
+      { key: "c", output: "(" },
+      { key: "v", output: "<" },
+      { key: "b", output: ">" },
+      { key: "n", output: ")" },
+      { key: "m", output: "]" },
+      { key: ",", output: "}" },
+      { key: ".", output: "=" },
+      { key: "/", output: "+" },
+      { key: "hyphen", output: "-" },
+      { key: "equal_sign", output: "_" },
+    ],
+  };
+  doc += generateLayerVisualization(symbolLayer);
+  doc += `> **💡 TIP:** The home row carries the shifted number row, so symbols never need a reach.\n\n`;
+
+  doc += `---\n\n`;
+
+  // Add commented layers as examples
+  doc += `## Commented Out / Experimental Layers\n\n`;
+  doc += `The following layers are currently disabled but available for experimentation. Uncomment them in \`my-index.ts\` and give each one a trigger that avoids the home row mod keys.\n\n`;
+
+  doc += generateLayerVisualization(functionKeysLayer);
+  doc += `> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)\n\n`;
+
   // Mouse Control Layer (commented)
   doc += `### Mouse Control Layer (Disabled)\n\n`;
   doc += `**Trigger:** Hold Spacebar + C simultaneously\n\n`;
   doc += `This advanced layer provides keyboard-based mouse control. It's disabled by default.\n\n`;
-  doc += `To enable: Uncomment the layer in \`my-index.ts\` (around line 241)\n\n`;
   doc += `> **⚠️ WARNING:** Requires "Manipulate pointer" permission in System Preferences > Security & Privacy > Accessibility\n\n`;
-
-  doc += `---\n\n`;
-
-  // Add commented symbol layers as examples
-  doc += `## Commented Out / Experimental Layers\n\n`;
-  doc += `The following layers are currently disabled but available for experimentation:\n\n`;
 
   // Symbol Hyper Layer
   const symbolHyperLayer: Layer = {
@@ -251,7 +293,7 @@ function generateDocs(): string {
   // Symbol Duo Layer
   const symbolDuoLayer: Layer = {
     name: "Symbol Chord Layer (Disabled)",
-    trigger: "Hold Spacebar + G simultaneously",
+    trigger: "None — Spacebar + G is taken by the Navigation Layer",
     mappings: [
       { key: "j", output: "(", description: "Left parenthesis" },
       { key: "k", output: ")", description: "Right parenthesis" },

@@ -47,11 +47,13 @@ Home Row Mods allow you to use home row keys as modifiers when held, while still
 
 ## Active Layers
 
-The following layers are currently active and ready to use. All use dual-key triggers to avoid accidental activation.
+The following layers are currently active and ready to use. Every trigger is spacebar-first with a 45ms window, matching the home row mod threshold, so a word ending in a trigger letter followed by a space still types normally.
+
+No trigger uses a home row mod key (a s d f j k l ;), because a duoLayer is matched before the Home Row Mods rule and would shadow that modifier.
 
 ## Navigation Layer (Vim-style)
 
-**Trigger:** Hold Spacebar + D simultaneously
+**Trigger:** Hold Spacebar, then G
 
 ```
   [Q      ] [W      ] [E      ] [R      ] [T      ] [Y→⌥← ] [U→PgU] [I→PgD] [O→⌥→ ] [P      ]
@@ -77,38 +79,9 @@ The following layers are currently active and ready to use. All use dual-key tri
 
 > **💡 TIP:** This is the most useful layer for reducing hand movement! Practice HJKL navigation in your editor.
 
-## Function Keys Layer
-
-**Trigger:** Hold Spacebar + F simultaneously
-
-```
-  [Q      ] [W      ] [E      ] [R→F5 ] [T      ] [Y      ] [U      ] [I      ] [O      ] [P      ]
-  [A      ] [S      ] [D→F12] [F      ] [G      ] [H      ] [J      ] [K      ] [L      ] [;      ]
-  [Z      ] [X      ] [C      ] [V      ] [B      ] [N      ] [M      ] [,      ] [.      ] [/      ]
-```
-
-| Key | Output | Description |
-|-----|--------|-------------|
-| 1 | F1 |  |
-| 2 | F2 |  |
-| 3 | F3 |  |
-| 4 | F4 |  |
-| 5 | F5 |  |
-| 6 | F6 |  |
-| 7 | F7 |  |
-| 8 | F8 |  |
-| 9 | F9 |  |
-| 0 | F10 |  |
-| HYPHEN | F11 |  |
-| EQUAL_SIGN | F12 |  |
-| R | F5 | Quick refresh |
-| D | F12 | Quick dev tools |
-
-> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)
-
 ## Media & System Control Layer
 
-**Trigger:** Hold Spacebar + M simultaneously
+**Trigger:** Hold Spacebar, then M
 
 ```
   [Q→🔒 ] [W      ] [E      ] [R      ] [T      ] [Y      ] [U→🔅 ] [I→Lau] [O→🔆 ] [P      ]
@@ -134,7 +107,7 @@ The following layers are currently active and ready to use. All use dual-key tri
 
 ## Numpad Layer (Right-hand)
 
-**Trigger:** Hold Spacebar + N simultaneously
+**Trigger:** Hold Spacebar, then N
 
 ```
   [Q      ] [W      ] [E      ] [R      ] [T      ] [Y      ] [U→7  ] [I→8  ] [O→9  ] [P→+  ]
@@ -162,21 +135,95 @@ The following layers are currently active and ready to use. All use dual-key tri
 
 > **💡 TIP:** Perfect for spreadsheets and data entry on laptops without numpads!
 
+## Number & Symbol Layer
+
+**Trigger:** Hold Spacebar, then V
+
+```
+  [Q→1  ] [W→2  ] [E→3  ] [R→4  ] [T→5  ] [Y→6  ] [U→7  ] [I→8  ] [O→9  ] [P→0  ]
+  [A→!  ] [S→@  ] [D→#  ] [F→$  ] [G→%  ] [H→^  ] [J→&  ] [K→*  ] [L→(  ] [;→)  ]
+  [Z→{  ] [X→[  ] [C→(  ] [V→<  ] [B→>  ] [N→)  ] [M→]  ] [,→}  ] [.→=  ] [/→+  ]
+```
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| Q | 1 |  |
+| W | 2 |  |
+| E | 3 |  |
+| R | 4 |  |
+| T | 5 |  |
+| Y | 6 |  |
+| U | 7 |  |
+| I | 8 |  |
+| O | 9 |  |
+| P | 0 |  |
+| A | ! |  |
+| S | @ |  |
+| D | # |  |
+| F | $ |  |
+| G | % |  |
+| H | ^ |  |
+| J | & |  |
+| K | * |  |
+| L | ( |  |
+| ; | ) |  |
+| Z | { |  |
+| X | [ |  |
+| C | ( |  |
+| V | < |  |
+| B | > |  |
+| N | ) |  |
+| M | ] |  |
+| , | } |  |
+| . | = |  |
+| / | + |  |
+| HYPHEN | - |  |
+| EQUAL_SIGN | _ |  |
+
+> **💡 TIP:** The home row carries the shifted number row, so symbols never need a reach.
+
+---
+
+## Commented Out / Experimental Layers
+
+The following layers are currently disabled but available for experimentation. Uncomment them in `my-index.ts` and give each one a trigger that avoids the home row mod keys.
+
+## Function Keys Layer (Disabled)
+
+**Trigger:** None — F is left Shift, so this layer ships disabled
+
+```
+  [Q      ] [W      ] [E      ] [R→F5 ] [T      ] [Y      ] [U      ] [I      ] [O      ] [P      ]
+  [A      ] [S      ] [D→F12] [F      ] [G      ] [H      ] [J      ] [K      ] [L      ] [;      ]
+  [Z      ] [X      ] [C      ] [V      ] [B      ] [N      ] [M      ] [,      ] [.      ] [/      ]
+```
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| 1 | F1 |  |
+| 2 | F2 |  |
+| 3 | F3 |  |
+| 4 | F4 |  |
+| 5 | F5 |  |
+| 6 | F6 |  |
+| 7 | F7 |  |
+| 8 | F8 |  |
+| 9 | F9 |  |
+| 0 | F10 |  |
+| HYPHEN | F11 |  |
+| EQUAL_SIGN | F12 |  |
+| R | F5 | Quick refresh |
+| D | F12 | Quick dev tools |
+
+> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)
+
 ### Mouse Control Layer (Disabled)
 
 **Trigger:** Hold Spacebar + C simultaneously
 
 This advanced layer provides keyboard-based mouse control. It's disabled by default.
 
-To enable: Uncomment the layer in `my-index.ts` (around line 241)
-
 > **⚠️ WARNING:** Requires "Manipulate pointer" permission in System Preferences > Security & Privacy > Accessibility
-
----
-
-## Commented Out / Experimental Layers
-
-The following layers are currently disabled but available for experimentation:
 
 ## Symbol Hyper Layer (Disabled)
 
@@ -199,7 +246,7 @@ The following layers are currently disabled but available for experimentation:
 
 ## Symbol Chord Layer (Disabled)
 
-**Trigger:** Hold Spacebar + G simultaneously
+**Trigger:** None — Spacebar + G is taken by the Navigation Layer
 
 ```
   [Q      ] [W      ] [E      ] [R      ] [T      ] [Y      ] [U→[  ] [I→]  ] [O      ] [P      ]

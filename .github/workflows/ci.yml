@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "26"
           cache: "npm"
 
       - run: npm ci
@@ -25,11 +25,14 @@ jobs:
       - name: Lint
         run: npm run check:biome
 
-      - name: Verify LAYERS.md is up to date
+      - name: Test
+        run: npm test
+
+      - name: Verify docs are up to date
         run: |
           npm run docs
-          git diff --exit-code LAYERS.md || {
-            echo "LAYERS.md is out of sync with generate-docs.ts"
-            echo "Run 'npm run docs' and commit the changes"
+          git diff --exit-code docs/keyboard.html || {
+            echo "docs/keyboard.html is out of sync with the config"
+            echo "Run 'npm run docs' and commit the result"
             exit 1
           }

@@ -1,0 +1,433 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karabiner Layers</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfd; --panel: #fff; --ink: #1c1c1f; --muted: #6b6b76;
+    --line: #dcdce4; --cap: #f4f4f8; --accent: #3b5bdb; --accent-ink: #fff;
+    --ok: #2b8a3e; --warn: #b45309; --bad: #c92a2a; --out: #1864ab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131317; --panel: #1b1b21; --ink: #ececf0; --muted: #9a9aa8;
+      --line: #33333f; --cap: #24242c; --accent: #748ffc; --accent-ink: #131317;
+      --ok: #69db7c; --warn: #fcc419; --bad: #ff8787; --out: #74c0fc;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #fbfbfd; --panel: #fff; --ink: #1c1c1f; --muted: #6b6b76;
+    --line: #dcdce4; --cap: #f4f4f8; --accent: #3b5bdb; --accent-ink: #fff;
+    --ok: #2b8a3e; --warn: #b45309; --bad: #c92a2a; --out: #1864ab;
+  }
+  :root[data-theme="dark"] {
+    --bg: #131317; --panel: #1b1b21; --ink: #ececf0; --muted: #9a9aa8;
+    --line: #33333f; --cap: #24242c; --accent: #748ffc; --accent-ink: #131317;
+    --ok: #69db7c; --warn: #fcc419; --bad: #ff8787; --out: #74c0fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.5rem; }
+  .banner { border: 1px solid var(--line); border-radius: 10px; padding: .7rem .9rem; margin-bottom: 1.5rem; background: var(--panel); }
+  .banner.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .banner.warn summary { color: var(--ok); }
+  .banner.bad summary { color: var(--bad); }
+  .banner summary { cursor: pointer; font-weight: 600; }
+  .conflicts { margin: .75rem 0 0; padding-left: 1.1rem; }
+  .conflicts li { margin-bottom: .5rem; color: var(--muted); }
+  .conflicts li strong { display: block; color: var(--ink); font-weight: 600; }
+  .conflicts li.error strong::after { content: " · error"; color: var(--bad); font-weight: 500; }
+  .conflicts li.warning strong::after { content: " · note"; color: var(--warn); font-weight: 500; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.1rem; }
+  .tab {
+    font: inherit; font-size: .85rem; cursor: pointer; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); border-radius: 8px; padding: .4rem .7rem;
+    display: flex; flex-direction: column; gap: .1rem; text-align: left; line-height: 1.25;
+  }
+  .tab .chord { font-size: .72rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, monospace; }
+  .tab.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tab.active .chord { color: inherit; opacity: .8; }
+  .board { overflow-x: auto; }
+  .keyboard {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: .55rem; display: flex; flex-direction: column; gap: .3rem;
+    min-width: 720px; max-width: 860px; margin: 0 auto;
+  }
+  .row { display: flex; gap: .3rem; }
+  /* Fixed height, not aspect-ratio: wide caps like the 6.25u spacebar would
+     otherwise stretch their whole row. */
+  .key {
+    flex: 1; position: relative; height: 54px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--cap); display: flex; align-items: center;
+    justify-content: center; min-width: 0; overflow: hidden;
+  }
+  .key .legend { position: absolute; top: 2px; left: 5px; font-size: .7rem; font-weight: 600; color: var(--muted); }
+  .key .mod { position: absolute; top: 2px; right: 5px; font-size: .8rem; font-weight: 700; color: var(--accent); }
+  .key .out {
+    font-size: 1.05rem; font-weight: 700; color: var(--out); text-align: center;
+    padding: .5rem .15rem 0; line-height: 1.12; max-width: 100%; overflow: hidden;
+  }
+  .key .out[data-len="medium"] { font-size: .78rem; }
+  .key .out[data-len="long"] { font-size: .6rem; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  /* On the base layer the printed letter is the content, so it moves out of the
+     corner and into the middle of the cap. */
+  .keyboard.base .key .legend {
+    position: static; font-size: 1.05rem; font-weight: 600; color: var(--ink);
+  }
+  .key.mapped { background: color-mix(in srgb, var(--out) 14%, var(--cap)); border-color: color-mix(in srgb, var(--out) 35%, var(--line)); }
+  .key.unmapped { opacity: .5; }
+  .key.unmapped .legend { color: var(--muted); }
+  .key.trigger { background: color-mix(in srgb, var(--accent) 22%, var(--cap)); border-color: var(--accent); }
+  .key.trigger .legend { color: var(--accent); }
+  .key.live { box-shadow: 0 0 0 2px var(--accent) inset; }
+  .hint { color: var(--muted); font-size: .85rem; margin-top: 1rem; }
+  kbd { font: inherit; font-family: ui-monospace, SFMono-Regular, monospace; font-size: .85em;
+        border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; }
+</style>
+<div class="wrap">
+  <h1>Karabiner Layers</h1>
+  <p class="sub">Generated from <code>config.ts</code>. Every layer opens on spacebar first, then the trigger key, within 45ms.</p>
+  <details class="banner warn" >
+      <summary>No conflicts. 4 notes on rule ordering.</summary>
+      <ul class="conflicts"><li class="warning"><strong>Navigation Layer (Vim-style)</strong>Maps home row mod keys (j, k, l, semicolon, a). These work only because this rule is ordered before the mods rule — keep it there.</li><li class="warning"><strong>Media &amp; System Control Layer</strong>Maps home row mod keys (l, j, k). These work only because this rule is ordered before the mods rule — keep it there.</li><li class="warning"><strong>Numpad Layer (Right-hand)</strong>Maps home row mod keys (j, k, l, semicolon). These work only because this rule is ordered before the mods rule — keep it there.</li><li class="warning"><strong>Number &amp; Symbol Layer (Space+V)</strong>Maps home row mod keys (a, s, d, f, j, k, l, semicolon). These work only because this rule is ordered before the mods rule — keep it there.</li></ul>
+    </details>
+  <div class="tabs" id="tabs"><button class="tab active" data-layer="base">Base</button><button class="tab" data-layer="duo-layer-spacebar-g">Navigation Layer (Vim-style)<span class="chord">␣ → G</span></button><button class="tab" data-layer="duo-layer-spacebar-m">Media &amp; System Control Layer<span class="chord">␣ → M</span></button><button class="tab" data-layer="duo-layer-spacebar-n">Numpad Layer (Right-hand)<span class="chord">␣ → N</span></button><button class="tab" data-layer="duo-layer-spacebar-v">Number &amp; Symbol Layer (Space+V)<span class="chord">␣ → V</span></button></div>
+  <div class="board"><div class="keyboard" id="keyboard"><div class="row"><div class="key" data-code="grave_accent_and_tilde">
+          <span class="legend">`</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="1">
+          <span class="legend">1</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="2">
+          <span class="legend">2</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="3">
+          <span class="legend">3</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="4">
+          <span class="legend">4</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="5">
+          <span class="legend">5</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="6">
+          <span class="legend">6</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="7">
+          <span class="legend">7</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="8">
+          <span class="legend">8</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="9">
+          <span class="legend">9</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="0">
+          <span class="legend">0</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="hyphen">
+          <span class="legend">-</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="equal_sign">
+          <span class="legend">=</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="delete_or_backspace" style="flex:2">
+          <span class="legend">⌫</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div></div><div class="row"><div class="key" data-code="tab" style="flex:1.5">
+          <span class="legend">⇥</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="q">
+          <span class="legend">Q</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="w">
+          <span class="legend">W</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="e">
+          <span class="legend">E</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="r">
+          <span class="legend">R</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="t">
+          <span class="legend">T</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="y">
+          <span class="legend">Y</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="u">
+          <span class="legend">U</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="i">
+          <span class="legend">I</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="o">
+          <span class="legend">O</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="p">
+          <span class="legend">P</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="open_bracket">
+          <span class="legend">[</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="close_bracket">
+          <span class="legend">]</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="backslash" style="flex:1.5">
+          <span class="legend">\</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div></div><div class="row"><div class="key" data-code="caps_lock" style="flex:1.75">
+          <span class="legend">⇪</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="a">
+          <span class="legend">A</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="s">
+          <span class="legend">S</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="d">
+          <span class="legend">D</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="f">
+          <span class="legend">F</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="g">
+          <span class="legend">G</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="h">
+          <span class="legend">H</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="j">
+          <span class="legend">J</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="k">
+          <span class="legend">K</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="l">
+          <span class="legend">L</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="semicolon">
+          <span class="legend">;</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="quote">
+          <span class="legend">&#39;</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="return_or_enter" style="flex:2.25">
+          <span class="legend">⏎</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div></div><div class="row"><div class="key" data-code="left_shift" style="flex:2.25">
+          <span class="legend">⇧</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="z">
+          <span class="legend">Z</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="x">
+          <span class="legend">X</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="c">
+          <span class="legend">C</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="v">
+          <span class="legend">V</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="b">
+          <span class="legend">B</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="n">
+          <span class="legend">N</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="m">
+          <span class="legend">M</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="comma">
+          <span class="legend">,</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="period">
+          <span class="legend">.</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="slash">
+          <span class="legend">/</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="right_shift" style="flex:2.75">
+          <span class="legend">⇧</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div></div><div class="row"><div class="key" data-code="left_control" style="flex:1.25">
+          <span class="legend">⌃</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="left_option" style="flex:1.25">
+          <span class="legend">⌥</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="left_command" style="flex:1.25">
+          <span class="legend">⌘</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="spacebar" style="flex:6.25">
+          <span class="legend"></span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="right_command" style="flex:1.25">
+          <span class="legend">⌘</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div><div class="key" data-code="right_option" style="flex:1.25">
+          <span class="legend">⌥</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div></div></div></div>
+  <p class="hint">Click a tab to pin a layer, or hold the real chord (<kbd>␣</kbd> then the trigger key) to preview it. Home row mods stay badged in the top-right of each key on every layer.</p>
+</div>
+<script>
+const DATA = {"layers":[{"id":"duo-layer-spacebar-g","description":"Navigation Layer (Vim-style)","triggerKeys":["spacebar","g"],"threshold":45,"keyDownOrder":"strict","mappings":[{"from":"h","to":"←"},{"from":"j","to":"↓"},{"from":"k","to":"↑"},{"from":"l","to":"→"},{"from":"u","to":"PgUp"},{"from":"i","to":"PgDn"},{"from":"n","to":"Home"},{"from":"m","to":"End"},{"from":"y","to":"⌥←"},{"from":"o","to":"⌥→"},{"from":"x","to":"⌦"},{"from":"delete_or_backspace","to":"⌫"},{"from":"semicolon","to":"⇧→"},{"from":"a","to":"⇧←"}]},{"id":"duo-layer-spacebar-m","description":"Media & System Control Layer","triggerKeys":["spacebar","m"],"threshold":45,"keyDownOrder":"strict","mappings":[{"from":"h","to":"🔉"},{"from":"l","to":"🔊"},{"from":"j","to":"🔇"},{"from":"u","to":"🔅"},{"from":"o","to":"🔆"},{"from":"n","to":"⏮"},{"from":"comma","to":"⏯"},{"from":"period","to":"⏭"},{"from":"k","to":"Mission Control"},{"from":"i","to":"Launchpad"},{"from":"q","to":"⌃⌘q"}]},{"id":"duo-layer-spacebar-n","description":"Numpad Layer (Right-hand)","triggerKeys":["spacebar","n"],"threshold":45,"keyDownOrder":"strict","mappings":[{"from":"u","to":"7"},{"from":"i","to":"8"},{"from":"o","to":"9"},{"from":"j","to":"4"},{"from":"k","to":"5"},{"from":"l","to":"6"},{"from":"m","to":"1"},{"from":"comma","to":"2"},{"from":"period","to":"3"},{"from":"spacebar","to":"0"},{"from":"h","to":"0"},{"from":"p","to":"+"},{"from":"semicolon","to":"-"},{"from":"quote","to":"*"},{"from":"slash","to":"/"},{"from":"return_or_enter","to":"⏎"}]},{"id":"duo-layer-spacebar-v","description":"Number & Symbol Layer (Space+V)","triggerKeys":["spacebar","v"],"threshold":45,"keyDownOrder":"strict","mappings":[{"from":"q","to":"1"},{"from":"w","to":"2"},{"from":"e","to":"3"},{"from":"r","to":"4"},{"from":"t","to":"5"},{"from":"y","to":"6"},{"from":"u","to":"7"},{"from":"i","to":"8"},{"from":"o","to":"9"},{"from":"p","to":"0"},{"from":"a","to":"!"},{"from":"s","to":"@"},{"from":"d","to":"#"},{"from":"f","to":"$"},{"from":"g","to":"%"},{"from":"h","to":"^"},{"from":"j","to":"&"},{"from":"k","to":"*"},{"from":"l","to":"("},{"from":"semicolon","to":")"},{"from":"z","to":"{"},{"from":"x","to":"["},{"from":"c","to":"("},{"from":"v","to":"<"},{"from":"b","to":">"},{"from":"n","to":")"},{"from":"m","to":"]"},{"from":"comma","to":"}"},{"from":"period","to":"="},{"from":"slash","to":"+"},{"from":"hyphen","to":"-"},{"from":"equal_sign","to":"_"}]}],"homeRowMods":{"f":"left_shift","d":"left_control","s":"left_option","a":"left_command","j":"right_shift","k":"right_control","l":"right_option","semicolon":"right_command"},"browserCodes":{"Space":"spacebar","Semicolon":"semicolon","Quote":"quote","Comma":"comma","Period":"period","Slash":"slash","Minus":"hyphen","Equal":"equal_sign","BracketLeft":"open_bracket","BracketRight":"close_bracket","Backslash":"backslash","Backquote":"grave_accent_and_tilde","Backspace":"delete_or_backspace","Enter":"return_or_enter","Tab":"tab","CapsLock":"caps_lock"}};
+const keyboard = document.getElementById("keyboard");
+const tabs = [...document.querySelectorAll(".tab")];
+const cells = new Map([...keyboard.querySelectorAll(".key")].map((el) => [el.dataset.code, el]));
+const byId = new Map(DATA.layers.map((l) => [l.id, l]));
+let pinned = "base";
+let preview = null;
+
+function paint(layerId) {
+  const layer = byId.get(layerId);
+  const outputs = new Map((layer?.mappings ?? []).map((m) => [m.from, m.to]));
+  const triggers = new Set(layer?.triggerKeys ?? []);
+  for (const [code, el] of cells) {
+    const out = outputs.get(code) ?? "";
+    const slot = el.querySelector(".out");
+    slot.textContent = out;
+    slot.dataset.len = out.length <= 2 ? "short" : out.length <= 5 ? "medium" : "long";
+    el.querySelector(".mod").textContent = DATA.homeRowMods[code]
+      ? { left_command: "⌘", right_command: "⌘", left_control: "⌃", right_control: "⌃",
+          left_option: "⌥", right_option: "⌥", left_shift: "⇧", right_shift: "⇧" }[DATA.homeRowMods[code]]
+      : "";
+    el.classList.toggle("trigger", triggers.has(code));
+    el.classList.toggle("mapped", Boolean(out));
+    el.classList.toggle("unmapped", Boolean(layer) && !out && !triggers.has(code));
+  }
+  keyboard.classList.toggle("base", !layer);
+  for (const tab of tabs) tab.classList.toggle("active", tab.dataset.layer === layerId);
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => {
+    pinned = tab.dataset.layer;
+    preview = null;
+    paint(pinned);
+  });
+}
+
+const held = new Set();
+
+function keyOf(event) {
+  return DATA.browserCodes[event.code]
+    ?? (event.code.startsWith("Key") ? event.code.slice(3).toLowerCase() : null)
+    ?? (event.code.startsWith("Digit") ? event.code.slice(5) : null);
+}
+
+// Spacebar must go down before the trigger key, mirroring key_down_order
+// "strict". A Set keeps insertion order, and keyup deletes, so a re-pressed key
+// lands at the end where it belongs.
+function chordLayer() {
+  const order = [...held];
+  const spaceAt = order.indexOf("spacebar");
+  if (spaceAt === -1) return null;
+  for (const layer of DATA.layers) {
+    const [first, ...rest] = layer.triggerKeys;
+    if (first !== "spacebar") continue;
+    const positions = rest.map((k) => order.indexOf(k));
+    if (positions.every((i) => i > spaceAt)) return layer.id;
+  }
+  return null;
+}
+
+addEventListener("keydown", (event) => {
+  const key = keyOf(event);
+  if (!key) return;
+  if (key === "spacebar") event.preventDefault();
+  held.add(key);
+  cells.get(key)?.classList.add("live");
+  const next = chordLayer();
+  if (next && next !== preview) {
+    preview = next;
+    paint(preview);
+  }
+});
+
+addEventListener("keyup", (event) => {
+  const key = keyOf(event);
+  if (!key) return;
+  held.delete(key);
+  cells.get(key)?.classList.remove("live");
+  if (preview && !chordLayer()) {
+    preview = null;
+    paint(pinned);
+  }
+});
+
+addEventListener("blur", () => {
+  held.clear();
+  for (const el of cells.values()) el.classList.remove("live");
+  preview = null;
+  paint(pinned);
+});
+
+paint(pinned);
+</script>

@@ -1,349 +1,284 @@
-#!/usr/bin/env tsx
-/**
- * Generates visual documentation for Karabiner keyboard layers
- */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { parameters } from "./config.ts";
+import { BROWSER_CODE_TO_KEY, KEYBOARD_LAYOUT } from "./keyboard-layout.ts";
+import {
+  type Conflict,
+  extractHomeRowMods,
+  extractLayers,
+  findConflicts,
+} from "./layers.ts";
 
-interface KeyMapping {
-  key: string;
-  output: string;
-  description?: string;
+const OUT = "docs/keyboard.html";
+
+const escapeHtml = (s: string) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c] as string,
+  );
+
+function renderConflicts(conflicts: Conflict[]): string {
+  const errors = conflicts.filter((c) => c.severity === "error");
+  if (conflicts.length === 0) {
+    return `<div class="banner ok">No conflicts detected.</div>`;
+  }
+  const items = conflicts
+    .map(
+      (c) =>
+        `<li class="${c.severity}"><strong>${escapeHtml(c.layer)}</strong>${escapeHtml(c.message)}</li>`,
+    )
+    .join("");
+  const heading = errors.length
+    ? `${errors.length} conflict${errors.length === 1 ? "" : "s"} that will affect typing`
+    : `No conflicts. ${conflicts.length} note${conflicts.length === 1 ? "" : "s"} on rule ordering.`;
+  return `<details class="banner ${errors.length ? "bad" : "warn"}" ${errors.length ? "open" : ""}>
+      <summary>${escapeHtml(heading)}</summary>
+      <ul class="conflicts">${items}</ul>
+    </details>`;
 }
 
-interface Layer {
-  name: string;
-  trigger: string;
-  mappings: KeyMapping[];
+function renderKeyboard(): string {
+  const rows = KEYBOARD_LAYOUT.map((row) => {
+    const caps = row
+      .map((cap) => {
+        const style = cap.width ? ` style="flex:${cap.width}"` : "";
+        return `<div class="key" data-code="${cap.code}"${style}>
+          <span class="legend">${escapeHtml(cap.label)}</span>
+          <span class="mod"></span>
+          <span class="out"></span>
+        </div>`;
+      })
+      .join("");
+    return `<div class="row">${caps}</div>`;
+  }).join("");
+  return `<div class="keyboard" id="keyboard">${rows}</div>`;
 }
 
-// Define keyboard layout for visualization
-const KEYBOARD_LAYOUT = {
-  row1: ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-  row2: ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
-  row3: ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
-  special: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "hyphen", "equal_sign"],
-};
+function buildPage(): string {
+  const layers = extractLayers();
+  const homeRowMods = extractHomeRowMods();
+  const conflicts = findConflicts(layers, homeRowMods);
+  const profileThreshold = parameters["basic.simultaneous_threshold_milliseconds"];
 
-function generateKeyboardRow(keys: string[], mappings: Map<string, string>): string {
-  const keyStrings = keys.map((key) => {
-    const output = mappings.get(key) || key;
-    const displayKey = key.length === 1 ? key.toUpperCase() : key.substring(0, 3);
-    const displayOutput = output.length <= 3 ? output : output.substring(0, 3);
+  const data = {
+    layers,
+    homeRowMods,
+    browserCodes: BROWSER_CODE_TO_KEY,
+  };
 
-    if (output === key) {
-      return `[${displayKey.padEnd(7)}]`;
+  const tabs = [
+    `<button class="tab active" data-layer="base">Base</button>`,
+    ...layers.map(
+      (l) =>
+        `<button class="tab" data-layer="${l.id}">${escapeHtml(l.description)}<span class="chord">${l.triggerKeys.map((k) => (k === "spacebar" ? "␣" : k.toUpperCase())).join(" → ")}</span></button>`,
+    ),
+  ].join("");
+
+  return `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karabiner Layers</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfd; --panel: #fff; --ink: #1c1c1f; --muted: #6b6b76;
+    --line: #dcdce4; --cap: #f4f4f8; --accent: #3b5bdb; --accent-ink: #fff;
+    --ok: #2b8a3e; --warn: #b45309; --bad: #c92a2a; --out: #1864ab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131317; --panel: #1b1b21; --ink: #ececf0; --muted: #9a9aa8;
+      --line: #33333f; --cap: #24242c; --accent: #748ffc; --accent-ink: #131317;
+      --ok: #69db7c; --warn: #fcc419; --bad: #ff8787; --out: #74c0fc;
     }
-    return `[${displayKey}→${displayOutput.padEnd(3)}]`;
+  }
+  :root[data-theme="light"] {
+    --bg: #fbfbfd; --panel: #fff; --ink: #1c1c1f; --muted: #6b6b76;
+    --line: #dcdce4; --cap: #f4f4f8; --accent: #3b5bdb; --accent-ink: #fff;
+    --ok: #2b8a3e; --warn: #b45309; --bad: #c92a2a; --out: #1864ab;
+  }
+  :root[data-theme="dark"] {
+    --bg: #131317; --panel: #1b1b21; --ink: #ececf0; --muted: #9a9aa8;
+    --line: #33333f; --cap: #24242c; --accent: #748ffc; --accent-ink: #131317;
+    --ok: #69db7c; --warn: #fcc419; --bad: #ff8787; --out: #74c0fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1.25rem 4rem; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.5rem; }
+  .banner { border: 1px solid var(--line); border-radius: 10px; padding: .7rem .9rem; margin-bottom: 1.5rem; background: var(--panel); }
+  .banner.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .banner.warn summary { color: var(--ok); }
+  .banner.bad summary { color: var(--bad); }
+  .banner summary { cursor: pointer; font-weight: 600; }
+  .conflicts { margin: .75rem 0 0; padding-left: 1.1rem; }
+  .conflicts li { margin-bottom: .5rem; color: var(--muted); }
+  .conflicts li strong { display: block; color: var(--ink); font-weight: 600; }
+  .conflicts li.error strong::after { content: " · error"; color: var(--bad); font-weight: 500; }
+  .conflicts li.warning strong::after { content: " · note"; color: var(--warn); font-weight: 500; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.1rem; }
+  .tab {
+    font: inherit; font-size: .85rem; cursor: pointer; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); border-radius: 8px; padding: .4rem .7rem;
+    display: flex; flex-direction: column; gap: .1rem; text-align: left; line-height: 1.25;
+  }
+  .tab .chord { font-size: .72rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, monospace; }
+  .tab.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tab.active .chord { color: inherit; opacity: .8; }
+  .board { overflow-x: auto; }
+  .keyboard {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: .55rem; display: flex; flex-direction: column; gap: .3rem;
+    min-width: 720px; max-width: 860px; margin: 0 auto;
+  }
+  .row { display: flex; gap: .3rem; }
+  /* Fixed height, not aspect-ratio: wide caps like the 6.25u spacebar would
+     otherwise stretch their whole row. */
+  .key {
+    flex: 1; position: relative; height: 54px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--cap); display: flex; align-items: center;
+    justify-content: center; min-width: 0; overflow: hidden;
+  }
+  .key .legend { position: absolute; top: 2px; left: 5px; font-size: .7rem; font-weight: 600; color: var(--muted); }
+  .key .mod { position: absolute; top: 2px; right: 5px; font-size: .8rem; font-weight: 700; color: var(--accent); }
+  .key .out {
+    font-size: 1.05rem; font-weight: 700; color: var(--out); text-align: center;
+    padding: .5rem .15rem 0; line-height: 1.12; max-width: 100%; overflow: hidden;
+  }
+  .key .out[data-len="medium"] { font-size: .78rem; }
+  .key .out[data-len="long"] { font-size: .6rem; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  /* On the base layer the printed letter is the content, so it moves out of the
+     corner and into the middle of the cap. */
+  .keyboard.base .key .legend {
+    position: static; font-size: 1.05rem; font-weight: 600; color: var(--ink);
+  }
+  .key.mapped { background: color-mix(in srgb, var(--out) 14%, var(--cap)); border-color: color-mix(in srgb, var(--out) 35%, var(--line)); }
+  .key.unmapped { opacity: .5; }
+  .key.unmapped .legend { color: var(--muted); }
+  .key.trigger { background: color-mix(in srgb, var(--accent) 22%, var(--cap)); border-color: var(--accent); }
+  .key.trigger .legend { color: var(--accent); }
+  .key.live { box-shadow: 0 0 0 2px var(--accent) inset; }
+  .hint { color: var(--muted); font-size: .85rem; margin-top: 1rem; }
+  kbd { font: inherit; font-family: ui-monospace, SFMono-Regular, monospace; font-size: .85em;
+        border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; }
+</style>
+<div class="wrap">
+  <h1>Karabiner Layers</h1>
+  <p class="sub">Generated from <code>config.ts</code>. Every layer opens on spacebar first, then the trigger key, within ${profileThreshold}ms.</p>
+  ${renderConflicts(conflicts)}
+  <div class="tabs" id="tabs">${tabs}</div>
+  <div class="board">${renderKeyboard()}</div>
+  <p class="hint">Click a tab to pin a layer, or hold the real chord (<kbd>␣</kbd> then the trigger key) to preview it. Home row mods stay badged in the top-right of each key on every layer.</p>
+</div>
+<script>
+const DATA = ${JSON.stringify(data)};
+const keyboard = document.getElementById("keyboard");
+const tabs = [...document.querySelectorAll(".tab")];
+const cells = new Map([...keyboard.querySelectorAll(".key")].map((el) => [el.dataset.code, el]));
+const byId = new Map(DATA.layers.map((l) => [l.id, l]));
+let pinned = "base";
+let preview = null;
+
+function paint(layerId) {
+  const layer = byId.get(layerId);
+  const outputs = new Map((layer?.mappings ?? []).map((m) => [m.from, m.to]));
+  const triggers = new Set(layer?.triggerKeys ?? []);
+  for (const [code, el] of cells) {
+    const out = outputs.get(code) ?? "";
+    const slot = el.querySelector(".out");
+    slot.textContent = out;
+    slot.dataset.len = out.length <= 2 ? "short" : out.length <= 5 ? "medium" : "long";
+    el.querySelector(".mod").textContent = DATA.homeRowMods[code]
+      ? { left_command: "⌘", right_command: "⌘", left_control: "⌃", right_control: "⌃",
+          left_option: "⌥", right_option: "⌥", left_shift: "⇧", right_shift: "⇧" }[DATA.homeRowMods[code]]
+      : "";
+    el.classList.toggle("trigger", triggers.has(code));
+    el.classList.toggle("mapped", Boolean(out));
+    el.classList.toggle("unmapped", Boolean(layer) && !out && !triggers.has(code));
+  }
+  keyboard.classList.toggle("base", !layer);
+  for (const tab of tabs) tab.classList.toggle("active", tab.dataset.layer === layerId);
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => {
+    pinned = tab.dataset.layer;
+    preview = null;
+    paint(pinned);
   });
-
-  return `  ${keyStrings.join(" ")}`;
 }
 
-function generateLayerVisualization(layer: Layer): string {
-  let output = `## ${layer.name}\n\n`;
-  output += `**Trigger:** ${layer.trigger}\n\n`;
+const held = new Set();
 
-  // Create mapping lookup
-  const mappingLookup = new Map<string, string>();
-  for (const mapping of layer.mappings) {
-    mappingLookup.set(mapping.key, mapping.output);
+function keyOf(event) {
+  return DATA.browserCodes[event.code]
+    ?? (event.code.startsWith("Key") ? event.code.slice(3).toLowerCase() : null)
+    ?? (event.code.startsWith("Digit") ? event.code.slice(5) : null);
+}
+
+// Spacebar must go down before the trigger key, mirroring key_down_order
+// "strict". A Set keeps insertion order, and keyup deletes, so a re-pressed key
+// lands at the end where it belongs.
+function chordLayer() {
+  const order = [...held];
+  const spaceAt = order.indexOf("spacebar");
+  if (spaceAt === -1) return null;
+  for (const layer of DATA.layers) {
+    const [first, ...rest] = layer.triggerKeys;
+    if (first !== "spacebar") continue;
+    const positions = rest.map((k) => order.indexOf(k));
+    if (positions.every((i) => i > spaceAt)) return layer.id;
   }
+  return null;
+}
 
-  output += "```\n";
-  output += generateKeyboardRow(KEYBOARD_LAYOUT.row1, mappingLookup) + "\n";
-  output += generateKeyboardRow(KEYBOARD_LAYOUT.row2, mappingLookup) + "\n";
-  output += generateKeyboardRow(KEYBOARD_LAYOUT.row3, mappingLookup) + "\n";
-  output += "```\n\n";
-
-  // Add mapping table
-  if (layer.mappings.length > 0) {
-    output += "| Key | Output | Description |\n";
-    output += "|-----|--------|-------------|\n";
-    for (const mapping of layer.mappings) {
-      const keyDisplay = mapping.key.toUpperCase();
-      const desc = mapping.description || "";
-      output += `| ${keyDisplay} | ${mapping.output} | ${desc} |\n`;
-    }
-    output += "\n";
+addEventListener("keydown", (event) => {
+  const key = keyOf(event);
+  if (!key) return;
+  if (key === "spacebar") event.preventDefault();
+  held.add(key);
+  cells.get(key)?.classList.add("live");
+  const next = chordLayer();
+  if (next && next !== preview) {
+    preview = next;
+    paint(preview);
   }
+});
 
-  return output;
+addEventListener("keyup", (event) => {
+  const key = keyOf(event);
+  if (!key) return;
+  held.delete(key);
+  cells.get(key)?.classList.remove("live");
+  if (preview && !chordLayer()) {
+    preview = null;
+    paint(pinned);
+  }
+});
+
+addEventListener("blur", () => {
+  held.clear();
+  for (const el of cells.values()) el.classList.remove("live");
+  preview = null;
+  paint(pinned);
+});
+
+paint(pinned);
+</script>
+`;
 }
 
-function generateHomeRowModsDoc(): string {
-  let output = `## Home Row Mods (GACS Layout)\n\n`;
-  output += `**Trigger:** Hold home row keys\n\n`;
-  output += `Home Row Mods allow you to use home row keys as modifiers when held, while still functioning as regular keys when tapped.\n\n`;
-
-  output += `### Left Hand\n\n`;
-  output += `| Key | Tap | Hold |\n`;
-  output += `|-----|-----|------|\n`;
-  output += `| A | a | ⌘ Command (GUI) |\n`;
-  output += `| S | s | ⌥ Option (Alt) |\n`;
-  output += `| D | d | ⌃ Control |\n`;
-  output += `| F | f | ⇧ Shift |\n\n`;
-
-  output += `### Right Hand\n\n`;
-  output += `| Key | Tap | Hold |\n`;
-  output += `|-----|-----|------|\n`;
-  output += `| J | j | ⇧ Shift |\n`;
-  output += `| K | k | ⌃ Control |\n`;
-  output += `| L | l | ⌥ Option (Alt) |\n`;
-  output += `| ; | ; | ⌘ Command (GUI) |\n\n`;
-
-  output += `### Timing Configuration\n\n`;
-  output += `- **to_if_alone_timeout**: 300ms (default 1000ms)\n`;
-  output += `- **to_if_held_down_threshold**: 200ms (default 500ms)\n`;
-  output += `- **to_delayed_action_delay**: 200ms (default 500ms)\n`;
-  output += `- **simultaneous_threshold**: 45ms (default 50ms)\n\n`;
-
-  return output;
-}
-
-function generateCapsLockDoc(): string {
-  let output = `## Caps Lock / Escape\n\n`;
-  output += `**Trigger:** Physical Caps Lock key\n\n`;
-  output += `- **Tap Caps Lock:** Escape\n`;
-  output += `- **Hold Both Shifts:** Toggle Caps Lock\n`;
-  output += `- **CAPS + Hold F or J:** Temporary lowercase (Shift inverts CAPS)\n\n`;
-
-  return output;
-}
-
-// Main documentation generation
-function generateDocs(): string {
-  let doc = `# Karabiner Configuration - Keyboard Layers\n\n`;
-  doc += `This document provides a visual reference for all keyboard layers and mappings.\n\n`;
-  doc += `---\n\n`;
-
-  // Add Caps Lock / Escape
-  doc += generateCapsLockDoc();
-
-  // Add Home Row Mods
-  doc += generateHomeRowModsDoc();
-
-  // Add Active Productivity Layers
-  doc += `---\n\n`;
-  doc += `## Active Layers\n\n`;
-  doc += `The following layers are currently active and ready to use. Every trigger is spacebar-first with a 45ms window, matching the home row mod threshold, so a word ending in a trigger letter followed by a space still types normally.\n\n`;
-  doc += `No trigger uses a home row mod key (a s d f j k l ;), because a duoLayer is matched before the Home Row Mods rule and would shadow that modifier.\n\n`;
-
-  // NOTE: Layer mappings below must be kept in sync with my-index.ts
-  // Navigation Layer
-  const navigationLayer: Layer = {
-    name: "Navigation Layer (Vim-style)",
-    trigger: "Hold Spacebar, then G",
-    mappings: [
-      { key: "h", output: "←", description: "Move left" },
-      { key: "j", output: "↓", description: "Move down" },
-      { key: "k", output: "↑", description: "Move up" },
-      { key: "l", output: "→", description: "Move right" },
-      { key: "u", output: "PgUp", description: "Page up" },
-      { key: "i", output: "PgDn", description: "Page down" },
-      { key: "n", output: "Home", description: "Start of line" },
-      { key: "m", output: "End", description: "End of line" },
-      { key: "y", output: "⌥←", description: "Previous word" },
-      { key: "o", output: "⌥→", description: "Next word" },
-      { key: "x", output: "Del", description: "Delete forward" },
-      { key: ";", output: "⇧→", description: "Select right" },
-      { key: "a", output: "⇧←", description: "Select left" },
-    ],
-  };
-  doc += generateLayerVisualization(navigationLayer);
-  doc += `> **💡 TIP:** This is the most useful layer for reducing hand movement! Practice HJKL navigation in your editor.\n\n`;
-
-  // Function Keys Layer
-  const functionKeysLayer: Layer = {
-    name: "Function Keys Layer (Disabled)",
-    trigger: "None — F is left Shift, so this layer ships disabled",
-    mappings: [
-      { key: "1", output: "F1" },
-      { key: "2", output: "F2" },
-      { key: "3", output: "F3" },
-      { key: "4", output: "F4" },
-      { key: "5", output: "F5" },
-      { key: "6", output: "F6" },
-      { key: "7", output: "F7" },
-      { key: "8", output: "F8" },
-      { key: "9", output: "F9" },
-      { key: "0", output: "F10" },
-      { key: "hyphen", output: "F11" },
-      { key: "equal_sign", output: "F12" },
-      { key: "r", output: "F5", description: "Quick refresh" },
-      { key: "d", output: "F12", description: "Quick dev tools" },
-    ],
-  };
-  // Media Controls Layer
-  const mediaLayer: Layer = {
-    name: "Media & System Control Layer",
-    trigger: "Hold Spacebar, then M",
-    mappings: [
-      { key: "h", output: "🔉", description: "Volume down" },
-      { key: "l", output: "🔊", description: "Volume up" },
-      { key: "j", output: "🔇", description: "Mute" },
-      { key: "u", output: "🔅", description: "Brightness down" },
-      { key: "o", output: "🔆", description: "Brightness up" },
-      { key: "n", output: "⏮", description: "Previous track" },
-      { key: ",", output: "⏯", description: "Play/Pause" },
-      { key: ".", output: "⏭", description: "Next track" },
-      { key: "k", output: "Mission", description: "Mission Control" },
-      { key: "i", output: "Launchpad", description: "Launchpad" },
-      { key: "q", output: "🔒", description: "Lock screen" },
-    ],
-  };
-  doc += generateLayerVisualization(mediaLayer);
-  doc += `> **💡 TIP:** Control volume and brightness without leaving the keyboard!\n\n`;
-
-  // Numpad Layer
-  const numpadLayer: Layer = {
-    name: "Numpad Layer (Right-hand)",
-    trigger: "Hold Spacebar, then N",
-    mappings: [
-      { key: "u", output: "7" },
-      { key: "i", output: "8" },
-      { key: "o", output: "9" },
-      { key: "j", output: "4" },
-      { key: "k", output: "5" },
-      { key: "l", output: "6" },
-      { key: "m", output: "1" },
-      { key: ",", output: "2" },
-      { key: ".", output: "3" },
-      { key: "h", output: "0" },
-      { key: "spacebar", output: "0", description: "Thumb zero" },
-      { key: "p", output: "+", description: "Plus" },
-      { key: ";", output: "-", description: "Minus" },
-      { key: "'", output: "*", description: "Multiply" },
-      { key: "/", output: "/", description: "Divide" },
-    ],
-  };
-  doc += generateLayerVisualization(numpadLayer);
-  doc += `> **💡 TIP:** Perfect for spreadsheets and data entry on laptops without numpads!\n\n`;
-
-  // Number & Symbol Layer
-  const symbolLayer: Layer = {
-    name: "Number & Symbol Layer",
-    trigger: "Hold Spacebar, then V",
-    mappings: [
-      { key: "q", output: "1" },
-      { key: "w", output: "2" },
-      { key: "e", output: "3" },
-      { key: "r", output: "4" },
-      { key: "t", output: "5" },
-      { key: "y", output: "6" },
-      { key: "u", output: "7" },
-      { key: "i", output: "8" },
-      { key: "o", output: "9" },
-      { key: "p", output: "0" },
-      { key: "a", output: "!" },
-      { key: "s", output: "@" },
-      { key: "d", output: "#" },
-      { key: "f", output: "$" },
-      { key: "g", output: "%" },
-      { key: "h", output: "^" },
-      { key: "j", output: "&" },
-      { key: "k", output: "*" },
-      { key: "l", output: "(" },
-      { key: ";", output: ")" },
-      { key: "z", output: "{" },
-      { key: "x", output: "[" },
-      { key: "c", output: "(" },
-      { key: "v", output: "<" },
-      { key: "b", output: ">" },
-      { key: "n", output: ")" },
-      { key: "m", output: "]" },
-      { key: ",", output: "}" },
-      { key: ".", output: "=" },
-      { key: "/", output: "+" },
-      { key: "hyphen", output: "-" },
-      { key: "equal_sign", output: "_" },
-    ],
-  };
-  doc += generateLayerVisualization(symbolLayer);
-  doc += `> **💡 TIP:** The home row carries the shifted number row, so symbols never need a reach.\n\n`;
-
-  doc += `---\n\n`;
-
-  // Add commented layers as examples
-  doc += `## Commented Out / Experimental Layers\n\n`;
-  doc += `The following layers are currently disabled but available for experimentation. Uncomment them in \`my-index.ts\` and give each one a trigger that avoids the home row mod keys.\n\n`;
-
-  doc += generateLayerVisualization(functionKeysLayer);
-  doc += `> **💡 TIP:** Great for debugging (F8: step over, F9: breakpoint, F10: step into)\n\n`;
-
-  // Mouse Control Layer (commented)
-  doc += `### Mouse Control Layer (Disabled)\n\n`;
-  doc += `**Trigger:** Hold Spacebar + C simultaneously\n\n`;
-  doc += `This advanced layer provides keyboard-based mouse control. It's disabled by default.\n\n`;
-  doc += `> **⚠️ WARNING:** Requires "Manipulate pointer" permission in System Preferences > Security & Privacy > Accessibility\n\n`;
-
-  // Symbol Hyper Layer
-  const symbolHyperLayer: Layer = {
-    name: "Symbol Hyper Layer (Disabled)",
-    trigger: "Hold G key (hyperLayer)",
-    mappings: [
-      { key: "j", output: "(", description: "Left parenthesis" },
-      { key: "k", output: ")", description: "Right parenthesis" },
-      { key: "u", output: "[", description: "Left square bracket" },
-      { key: "i", output: "]", description: "Right square bracket" },
-      { key: "m", output: "{", description: "Left curly brace" },
-      { key: ",", output: "}", description: "Right curly brace" },
-    ],
-  };
-  doc += generateLayerVisualization(symbolHyperLayer);
-
-  // Symbol Duo Layer
-  const symbolDuoLayer: Layer = {
-    name: "Symbol Chord Layer (Disabled)",
-    trigger: "None — Spacebar + G is taken by the Navigation Layer",
-    mappings: [
-      { key: "j", output: "(", description: "Left parenthesis" },
-      { key: "k", output: ")", description: "Right parenthesis" },
-      { key: "u", output: "[", description: "Left square bracket" },
-      { key: "i", output: "]", description: "Right square bracket" },
-      { key: "h", output: "{", description: "Left curly brace" },
-      { key: "l", output: "}", description: "Right curly brace" },
-      { key: "n", output: "<", description: "Left angle bracket" },
-      { key: "m", output: ">", description: "Right angle bracket" },
-      { key: "1", output: "!", description: "Exclamation mark" },
-      { key: "2", output: "@", description: "At symbol" },
-      { key: "3", output: "#", description: "Hash/pound" },
-      { key: "4", output: "$", description: "Dollar sign" },
-      { key: "5", output: "%", description: "Percent" },
-      { key: "6", output: "^", description: "Caret" },
-      { key: "7", output: "&", description: "Ampersand" },
-      { key: "8", output: "*", description: "Asterisk" },
-      { key: "9", output: "(", description: "Open parenthesis" },
-      { key: "0", output: ")", description: "Close parenthesis" },
-      { key: "hyphen", output: "_", description: "Underscore" },
-      { key: "equal_sign", output: "+", description: "Plus" },
-    ],
-  };
-  doc += generateLayerVisualization(symbolDuoLayer);
-
-  // Numbers Layer
-  const numbersLayer: Layer = {
-    name: "Numbers Layer (Disabled)",
-    trigger: "Hold V + M simultaneously",
-    mappings: [
-      { key: "h", output: "0" },
-      { key: "m", output: "1" },
-      { key: ",", output: "2" },
-      { key: ".", output: "3" },
-      { key: "j", output: "4" },
-      { key: "k", output: "5" },
-      { key: "l", output: "6" },
-      { key: "u", output: "7" },
-      { key: "i", output: "8" },
-      { key: "o", output: "9" },
-    ],
-  };
-  doc += generateLayerVisualization(numbersLayer);
-
-  doc += `---\n\n`;
-  doc += `*Generated automatically by generate-docs.ts*\n`;
-
-  return doc;
-}
-
-// Generate and write documentation
-const documentation = generateDocs();
-console.log(documentation);
+const html = buildPage();
+mkdirSync(dirname(OUT), { recursive: true });
+writeFileSync(OUT, html);
+console.log(`Wrote ${OUT}`);

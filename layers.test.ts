@@ -83,8 +83,8 @@ test("the Media layer is a mod-tap on M alone, not a spacebar chord", () => {
   assert.deepEqual(media.triggerKeys, ["m"]);
 });
 
-test("no trigger window exceeds the profile threshold", () => {
-  for (const l of layers) {
+test("no chord trigger window exceeds the profile threshold", () => {
+  for (const l of layers.filter((l) => l.kind === "chord")) {
     assert.ok(
       l.threshold <= profileThreshold,
       `${l.description} is ${l.threshold}ms against a ${profileThreshold}ms profile threshold`,

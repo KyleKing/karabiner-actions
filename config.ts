@@ -45,6 +45,12 @@ const DUO_THRESHOLD = 60;
 // followed by a space still types normally.
 const DUO_OPTIONS = { key_down_order: "strict" } as const;
 
+// Mod-tap layers (no spacebar sync) need an actual elapsed-time hold rather
+// than the rollover-prone to/to_if_alone pair, so this is passed to .delay()
+// as a private to_if_held_down threshold isolated from Home Row Mods' own
+// basic.to_if_held_down_threshold_milliseconds below.
+const MOD_TAP_HOLD_THRESHOLD = 250;
+
 export const HOME_ROW_MODS: Record<string, string> = {
   [L_GUI]: "left_command",
   [L_ALT]: "left_option",
@@ -189,7 +195,15 @@ export const rules = [
   // - Works on any keyboard (even those without media keys)
   //
   // TIP: The layout mirrors common media key positions (left for volume, right for brightness)
+  //
+  // .delay() switches the trigger from to_if_alone/to (which fires the instant
+  // ANY other key goes down while M is still physically held, i.e. ordinary
+  // keyboard rollover, not a deliberate hold) to to_if_held_down (a real
+  // elapsed-time gate, immune to rollover). Its threshold is private to this
+  // manipulator via .parameters(), so it doesn't affect Home Row Mods' own
+  // basic.to_if_held_down_threshold_milliseconds.
   layer(MEDIA_LAYER)
+    .delay(MOD_TAP_HOLD_THRESHOLD)
     .description("Media & System Control Layer")
     .manipulators([
       // Volume control (left side - easy to remember)

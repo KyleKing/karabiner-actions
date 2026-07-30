@@ -177,7 +177,7 @@ export function extractLayers(source?: Json[]): Layer[] {
       threshold:
         kind === "chord"
           ? (trigger.parameters?.["basic.simultaneous_threshold_milliseconds"] ?? 0)
-          : 0,
+          : (trigger.parameters?.["basic.to_if_held_down_threshold_milliseconds"] ?? 0),
       keyDownOrder:
         kind === "chord"
           ? (trigger.from.simultaneous_options?.key_down_order ?? "insensitive")

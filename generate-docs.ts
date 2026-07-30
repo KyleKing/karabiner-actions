@@ -7,9 +7,30 @@ import {
   extractHomeRowMods,
   extractLayers,
   findConflicts,
+  type Layer,
 } from "./layers.ts";
 
 const OUT = "docs/keyboard.html";
+
+// Real words picked to maximize the chance of exposing a false trigger:
+// chord layers key off the last letter (a word starting with it, after a
+// space, is the exact risk case layers.ts's own conflict checker flags), and
+// the mod-tap layer keys off a letter immediately followed by one of its
+// mapped action keys (the exact rollover scenario .delay() guards against).
+const CHORD_RISK_WORDS: Record<string, string[]> = {
+  g: ["give", "get"],
+  n: ["next", "note"],
+  v: ["very", "voice"],
+};
+const MOD_TAP_RISK_WORDS: Record<string, string[]> = {
+  m: ["much", "moment"],
+};
+
+function riskWords(layer: Layer): string[] {
+  return layer.kind === "chord"
+    ? (CHORD_RISK_WORDS[layer.triggerKeys.at(-1) ?? ""] ?? [])
+    : (MOD_TAP_RISK_WORDS[layer.triggerKeys[0] ?? ""] ?? []);
+}
 
 const escapeHtml = (s: string) =>
   s.replace(
@@ -42,6 +63,42 @@ function renderConflicts(conflicts: Conflict[]): string {
       <summary>${escapeHtml(heading)}</summary>
       <ul class="conflicts">${items}</ul>
     </details>`;
+}
+
+function renderPractice(layers: Layer[]): string {
+  const rows = layers
+    .map((l) => {
+      const words = riskWords(l);
+      if (words.length === 0) return "";
+      const target =
+        l.kind === "chord"
+          ? `gap between ${l.triggerKeys.map((k) => (k === "spacebar" ? "␣" : k.toUpperCase())).join(" and ")} &le; ${l.threshold}ms`
+          : `hold ${l.triggerKeys[0]?.toUpperCase()} &ge; ${l.threshold}ms`;
+      const inputs = words
+        .map(
+          (w) => `<span class="test-row">
+            <span class="test-word">${w}</span>
+            <input class="test-input" type="text" data-word="${w}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <span class="test-status"></span>
+          </span>`,
+        )
+        .join("");
+      return `<div class="practice-row">
+        <div class="practice-head">
+          <strong>${escapeHtml(l.description)}</strong>
+          <span class="practice-target">${target}</span>
+          <span class="practice-readout" data-layer="${l.id}"></span>
+        </div>
+        <div class="practice-words">${inputs}</div>
+      </div>`;
+    })
+    .join("");
+  if (!rows) return "";
+  return `<section class="practice">
+    <h2>Timing practice</h2>
+    <p class="hint">Type each word at normal speed, not deliberately slow. A mismatch below means this layer misfired mid-word, not a typo. The readout next to each layer shows the actual timing behind the last attempt.</p>
+    ${rows}
+  </section>`;
 }
 
 function renderKeyboard(): string {
@@ -178,6 +235,21 @@ function buildPage(): string {
   .howto li { margin-bottom: .3rem; }
   kbd { font: inherit; font-family: ui-monospace, SFMono-Regular, monospace; font-size: .85em;
         border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; }
+  .practice { margin-top: 2rem; }
+  .practice h2 { font-size: 1.05rem; margin: 0 0 .4rem; }
+  .practice-row { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; margin-bottom: .6rem; background: var(--panel); }
+  .practice-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; margin-bottom: .4rem; }
+  .practice-target { color: var(--muted); font-size: .8rem; }
+  .practice-readout { font-size: .8rem; font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace; }
+  .practice-readout.ok { color: var(--ok); }
+  .practice-readout.bad { color: var(--bad); }
+  .practice-words { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+  .test-row { display: inline-flex; align-items: center; gap: .4rem; }
+  .test-word { font-family: ui-monospace, SFMono-Regular, monospace; color: var(--muted); }
+  .test-input { font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: .2rem .4rem; width: 6rem; background: var(--bg); color: var(--ink); }
+  .test-status { font-size: .78rem; }
+  .test-status.ok { color: var(--ok); }
+  .test-status.bad { color: var(--bad); }
 </style>
 <div class="wrap">
   <h1>Karabiner Layers</h1>
@@ -200,6 +272,7 @@ function buildPage(): string {
   <div class="tabs" id="tabs">${tabs}</div>
   <div class="board">${renderKeyboard()}</div>
   <p class="hint">Click a tab to pin a layer, or hold the real chord/key to preview it live: <kbd>␣</kbd> then the trigger key for a chord layer, or just the trigger key alone for a mod-tap layer. Home row mods stay badged in the top-right of each key on every layer.</p>
+  ${renderPractice(layers)}
 </div>
 <script>
 const DATA = ${JSON.stringify(data)};
@@ -267,16 +340,62 @@ function chordLayer() {
   return null;
 }
 
+// Raw physical keydown timestamps, so the practice readouts can show real
+// gap/hold durations instead of just whether a layer matched.
+const downAt = new Map();
+
+function practiceReadout(layerId) {
+  return document.querySelector('.practice-readout[data-layer="' + layerId + '"]');
+}
+
+function updateChordPractice(layer) {
+  const el = practiceReadout(layer.id);
+  if (!el) return;
+  const [first, ...rest] = layer.triggerKeys;
+  const t0 = downAt.get(first);
+  const t1 = downAt.get(rest[0]);
+  if (t0 === undefined || t1 === undefined || t1 < t0) return;
+  const gap = Math.round(t1 - t0);
+  el.textContent = "last gap: " + gap + "ms";
+  el.className = "practice-readout " + (gap <= layer.threshold ? "ok" : "bad");
+}
+
+function updateModTapPractice(layer) {
+  const el = practiceReadout(layer.id);
+  if (!el) return;
+  const t0 = downAt.get(layer.triggerKeys[0]);
+  if (t0 === undefined) return;
+  const heldMs = Math.round(performance.now() - t0);
+  el.textContent = "held: " + heldMs + "ms";
+  el.className = "practice-readout " + (heldMs >= layer.threshold ? "ok" : "bad");
+}
+
+// Chord gaps are decided at the moment the second key lands, but a mod-tap
+// hold has to be shown live while the key is still down, hence the rAF loop.
+function tickPractice() {
+  for (const layer of DATA.layers) {
+    if (layer.kind === "modTap" && held.has(layer.triggerKeys[0])) {
+      updateModTapPractice(layer);
+    }
+  }
+  requestAnimationFrame(tickPractice);
+}
+requestAnimationFrame(tickPractice);
+
 addEventListener("keydown", (event) => {
   const key = keyOf(event);
   if (!key) return;
   if (key === "spacebar") event.preventDefault();
   held.add(key);
+  if (!downAt.has(key)) downAt.set(key, event.timeStamp);
   cells.get(key)?.classList.add("live");
   const next = chordLayer();
   if (next && next !== preview) {
     preview = next;
     paint(preview);
+  }
+  for (const layer of DATA.layers) {
+    if (layer.kind === "chord") updateChordPractice(layer);
   }
 });
 
@@ -284,6 +403,7 @@ addEventListener("keyup", (event) => {
   const key = keyOf(event);
   if (!key) return;
   held.delete(key);
+  downAt.delete(key);
   cells.get(key)?.classList.remove("live");
   if (preview && !chordLayer()) {
     preview = null;
@@ -293,10 +413,43 @@ addEventListener("keyup", (event) => {
 
 addEventListener("blur", () => {
   held.clear();
+  downAt.clear();
   for (const el of cells.values()) el.classList.remove("live");
   preview = null;
   paint(pinned);
 });
+
+for (const input of document.querySelectorAll(".test-input")) {
+  const word = input.dataset.word;
+  const status = input.nextElementSibling;
+  let timer = null;
+
+  function finalize() {
+    const typed = input.value.toLowerCase();
+    if (typed.length === 0) {
+      status.textContent = "";
+      status.className = "test-status";
+    } else if (typed === word) {
+      status.textContent = "ok, no misfire";
+      status.className = "test-status ok";
+    } else {
+      status.textContent = 'misfire? typed "' + input.value + '", expected "' + word + '"';
+      status.className = "test-status bad";
+    }
+  }
+
+  input.addEventListener("focus", () => {
+    input.value = "";
+    status.textContent = "";
+    status.className = "test-status";
+  });
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    if (input.value.length >= word.length) finalize();
+    else timer = setTimeout(finalize, 900);
+  });
+  input.addEventListener("blur", finalize);
+}
 
 paint(pinned);
 </script>

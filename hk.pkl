@@ -24,6 +24,11 @@ local slow_checks = new Mapping<String, Step> {
     batch = false
     check = "npx --no-install -- node --import tsx --test \"*.test.ts\""
   }
+  ["docs"] = new Step {
+    glob = List("config.ts", "generate-docs.ts", "keyboard-layout.ts", "layers.ts")
+    batch = false
+    check = "npm run docs >/dev/null && git diff --exit-code docs/keyboard.html"
+  }
 }
 
 hooks {

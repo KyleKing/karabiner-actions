@@ -6,6 +6,32 @@ The layers were inspired by: <https://getreuer.info/posts/keyboards/symbol-layer
 
 Keyboard practice is with <https://monkeytype.com> using *Quote* and *Python* to practice with symbols
 
+## Research: chord ergonomics and timing
+
+The `duoLayer` triggers require spacebar-then-letter within a tight window, which
+is a genuine rolling chord rather than a hold-then-tap. A few sources on the
+tradeoff between window size (false triggers vs. missed triggers) and on
+alternative activation patterns:
+
+- [Combos | QMK Firmware](https://docs.qmk.fm/features/combo) sets `COMBO_TERM`
+  to 50ms by default and recommends "set `COMBO_TERM` as low as possible while
+  still allowing consistent activation" — the window should shrink toward the
+  false-trigger boundary, not grow toward comfort.
+- [`from.simultaneous_options` | Karabiner-Elements](https://karabiner-elements.pqrs.org/docs/json/complex-modifications-manipulator-definition/from/simultaneous-options/)
+  documents Karabiner's own default for `basic.simultaneous_threshold_milliseconds`
+  as 50ms, which this project's 45ms already sits at or below.
+- [Key rollover](https://en.wikipedia.org/wiki/Key_rollover) covers why fast
+  typing can misfire nested-key combos, and why the standard mitigation is
+  dropping the offending combo rather than widening its term.
+- [A reasonable default](https://getreuer.info/posts/keyboards/symbol-layer/index.html#a-reasonable-default)
+  doesn't cover activation timing directly; its own example (ShelZuuz's layout)
+  uses "layer-tap keys on the base layer, placed symmetrically on the home row
+  ring finger keys" — a hold-based dual-role key, not a two-key chord race.
+  That's the pattern to reach for if raising the threshold stops being enough:
+  make the trigger letter itself dual-role (tap for the letter, hold for the
+  layer), which removes the spacebar synchronization entirely instead of
+  loosening it.
+
 ## Quick Start
 
 ```sh
@@ -29,7 +55,7 @@ npm test
 
 ### Active Layers
 
-All layers trigger on spacebar first, then the layer key, within a 45ms window:
+All layers trigger on spacebar first, then the layer key, within a 60ms window:
 
 - **Navigation Layer** (`Space → G`): Vim-style HJKL navigation, page up/down, home/end, word jumping
 - **Media Controls** (`Space → M`): Volume, brightness, playback controls

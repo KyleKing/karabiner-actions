@@ -34,7 +34,10 @@ const SYMBOL_LAYER = "v";
 // Every spacebar duoLayer withholds the spacebar keypress until this window
 // closes, so it must track basic.simultaneous_threshold_milliseconds below.
 // Without it karabiner.ts bakes in duo_layer.threshold_milliseconds (200).
-const DUO_THRESHOLD = 45;
+// 60ms is a modest raise off Karabiner's and QMK's own 50ms combo-term
+// defaults (see README research section); going much higher risks matching
+// ordinary "space, letter" prose typing as a chord.
+const DUO_THRESHOLD = 60;
 
 // Only spacebar-first opens a layer, so a word ending in a trigger letter
 // followed by a space still types normally.
@@ -565,5 +568,5 @@ export const parameters = {
   "basic.to_if_alone_timeout_milliseconds": 300, // Default 1000
   "basic.to_if_held_down_threshold_milliseconds": 200, // Default 500
   "basic.to_delayed_action_delay_milliseconds": 200, // Default 500
-  "basic.simultaneous_threshold_milliseconds": 45, // Default 50
+  "basic.simultaneous_threshold_milliseconds": 60, // Default 50
 };

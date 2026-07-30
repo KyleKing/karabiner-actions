@@ -101,8 +101,7 @@ function renderPractice(layers: Layer[]): string {
           <span class="practice-target">${target}</span>
           <span class="practice-readout" data-layer="${l.id}"></span>
         </div>
-        ${holdBar}
-        <div class="practice-words">${inputs}</div>
+        ${holdBar}<div class="practice-words">${inputs}</div>
       </div>`;
     })
     .join("");

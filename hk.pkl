@@ -1,0 +1,38 @@
+// Escape hatches: HK=0 to disable, `git commit --no-verify` to skip for one commit
+amends "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.53.0/hk@1.53.0#/Builtins.pkl"
+
+min_hk_version = "1.53.0"
+
+local basic_checks = new Mapping<String, Step> {
+  ["check-added-large-files"] = Builtins.check_added_large_files
+  ["check-merge-conflict"] = Builtins.check_merge_conflict
+  ["trailing-whitespace"] = Builtins.trailing_whitespace
+}
+
+local linters = new Mapping<String, Step> {
+  ["biome"] = (Builtins.biome) {
+    check = "npx --no-install -- biome check --no-errors-on-unmatched {{files}}"
+    fix = "npx --no-install -- biome check --write --no-errors-on-unmatched {{files}}"
+  }
+  ["tsc"] = (Builtins.tsc) { batch = false; prefix = "npx --no-install --" }
+}
+
+local slow_checks = new Mapping<String, Step> {
+  ["test"] = new Step {
+    glob = List("*.test.ts")
+    batch = false
+    check = "npx --no-install -- node --import tsx --test \"*.test.ts\""
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = new { ...basic_checks; ...linters }
+  }
+  ["pre-push"] { steps = new { ...basic_checks; ...linters; ...slow_checks } }
+  ["fix"] { fix = true; steps = new { ...basic_checks; ...linters } }
+  ["check"] { steps = new { ...basic_checks; ...linters; ...slow_checks } }
+}

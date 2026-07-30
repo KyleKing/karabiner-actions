@@ -90,6 +90,7 @@ export const rules = [
     ]),
     // Add alternate CAPS Lock
     mapSimultaneous([L_SHIFT, R_SHIFT])
+      .condition(ifVar("caps_lock_state", 0))
       .to(toSetVar("caps_lock_state", 1))
       .to("caps_lock"),
   ]),

@@ -75,10 +75,15 @@ function buildPage(): string {
 
   const tabs = [
     `<button type="button" class="tab active" data-layer="base">Base</button>`,
-    ...layers.map(
-      (l) =>
-        `<button type="button" class="tab" data-layer="${l.id}">${escapeHtml(l.description)}<span class="chord">${l.triggerKeys.map((k) => (k === "spacebar" ? "␣" : k.toUpperCase())).join(" → ")}</span></button>`,
-    ),
+    ...layers.map((l) => {
+      const chord =
+        l.kind === "chord"
+          ? l.triggerKeys
+              .map((k) => (k === "spacebar" ? "␣" : k.toUpperCase()))
+              .join(" → ")
+          : `hold ${l.triggerKeys[0]?.toUpperCase()}`;
+      return `<button type="button" class="tab" data-layer="${l.id}">${escapeHtml(l.description)}<span class="chord">${chord}</span></button>`;
+    }),
   ].join("");
 
   return `<meta charset="utf-8">
@@ -177,16 +182,24 @@ function buildPage(): string {
 <div class="wrap">
   <h1>Karabiner Layers</h1>
   <p class="sub">Generated from <code>config.ts</code>.</p>
+  <p><strong>Chord layers</strong> (Navigation, Numpad, Number &amp; Symbols):</p>
   <ol class="howto">
     <li>Press and <strong>hold</strong> Spacebar.</li>
-    <li>Within ${profileThreshold}ms, while still holding Spacebar, press and <strong>hold</strong> a layer's trigger key (e.g. <kbd>M</kbd> for Media). The layer stays active only as long as both are held.</li>
-    <li>Still holding both, tap a mapped key to run its action, e.g. <kbd>J</kbd> to mute.</li>
+    <li>Within ${profileThreshold}ms, while still holding Spacebar, press and <strong>hold</strong> the layer's trigger key (e.g. <kbd>G</kbd> for Navigation). The layer stays active only as long as both are held.</li>
+    <li>Still holding both, tap a mapped key to run its action, e.g. <kbd>H</kbd> for left arrow.</li>
     <li>Release the trigger key (or Spacebar) to close the layer.</li>
+  </ol>
+  <p><strong>Mod-tap layers</strong> (Media):</p>
+  <ol class="howto">
+    <li>Press and <strong>hold</strong> <kbd>M</kbd> alone. No Spacebar needed. Tapping <kbd>M</kbd> quickly still just types "m".</li>
+    <li>Once held past the hold threshold, the layer is active for as long as <kbd>M</kbd> stays down.</li>
+    <li>Still holding <kbd>M</kbd>, tap a mapped key to run its action, e.g. <kbd>J</kbd> to mute.</li>
+    <li>Release <kbd>M</kbd> to close the layer.</li>
   </ol>
   ${renderConflicts(conflicts)}
   <div class="tabs" id="tabs">${tabs}</div>
   <div class="board">${renderKeyboard()}</div>
-  <p class="hint">Click a tab to pin a layer, or hold the real chord (<kbd>␣</kbd> then the trigger key) to preview it. Home row mods stay badged in the top-right of each key on every layer.</p>
+  <p class="hint">Click a tab to pin a layer, or hold the real chord/key to preview it live: <kbd>␣</kbd> then the trigger key for a chord layer, or just the trigger key alone for a mod-tap layer. Home row mods stay badged in the top-right of each key on every layer.</p>
 </div>
 <script>
 const DATA = ${JSON.stringify(data)};
@@ -240,8 +253,12 @@ function keyOf(event) {
 function chordLayer() {
   const order = [...held];
   const spaceAt = order.indexOf("spacebar");
-  if (spaceAt === -1) return null;
   for (const layer of DATA.layers) {
+    if (layer.kind === "modTap") {
+      if (held.has(layer.triggerKeys[0])) return layer.id;
+      continue;
+    }
+    if (spaceAt === -1) continue;
     const [first, ...rest] = layer.triggerKeys;
     if (first !== "spacebar") continue;
     const positions = rest.map((k) => order.indexOf(k));

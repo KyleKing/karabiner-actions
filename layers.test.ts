@@ -17,6 +17,7 @@ const profileThreshold = parameters["basic.simultaneous_threshold_milliseconds"]
 const layer = (overrides: Partial<Layer> = {}): Layer => ({
   id: "duo-layer-spacebar-g",
   description: "Test Layer",
+  kind: "chord",
   triggerKeys: ["spacebar", "g"],
   threshold: 45,
   keyDownOrder: "strict",
@@ -68,11 +69,18 @@ test("no layer trigger sits on a home row mod key", () => {
   }
 });
 
-test("every trigger is spacebar-first and strict", () => {
-  for (const l of layers) {
+test("every chord trigger is spacebar-first and strict", () => {
+  for (const l of layers.filter((l) => l.kind === "chord")) {
     assert.equal(l.triggerKeys[0], "spacebar", l.description);
     assert.equal(l.keyDownOrder, "strict", l.description);
   }
+});
+
+test("the Media layer is a mod-tap on M alone, not a spacebar chord", () => {
+  const media = layers.find((l) => l.description.startsWith("Media"));
+  assert.ok(media);
+  assert.equal(media.kind, "modTap");
+  assert.deepEqual(media.triggerKeys, ["m"]);
 });
 
 test("no trigger window exceeds the profile threshold", () => {

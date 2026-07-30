@@ -1,7 +1,7 @@
 import { complexModifications } from "karabiner.ts";
 import { parameters, rules } from "./config.ts";
 
-const LAYER_VAR_PREFIX = "duo-layer-";
+const LAYER_VAR_PREFIXES = ["duo-layer-", "layer-"];
 
 export type LayerMapping = {
   from: string;
@@ -11,6 +11,7 @@ export type LayerMapping = {
 export type Layer = {
   id: string;
   description: string;
+  kind: "chord" | "modTap";
   triggerKeys: string[];
   threshold: number;
   keyDownOrder: string;
@@ -127,9 +128,13 @@ function describeTo(to: Json[] | undefined): string {
   return to.map(describeToEvent).filter(Boolean).join(" ");
 }
 
+function isLayerVarName(name: string | undefined): boolean {
+  return name !== undefined && LAYER_VAR_PREFIXES.some((p) => name.startsWith(p));
+}
+
 function layerVariable(manipulator: Json): string | undefined {
   const condition = (manipulator.conditions ?? []).find(
-    (c: Json) => c.type === "variable_if" && c.name?.startsWith(LAYER_VAR_PREFIX),
+    (c: Json) => c.type === "variable_if" && isLayerVarName(c.name),
   );
   return condition?.name;
 }
@@ -145,12 +150,13 @@ export function extractLayers(source?: Json[]): Layer[] {
   for (const rule of built.rules as Json[]) {
     const trigger = (rule.manipulators as Json[]).find(
       (m) =>
-        m.from?.simultaneous &&
-        m.to?.[0]?.set_variable?.name?.startsWith(LAYER_VAR_PREFIX),
+        isLayerVarName(m.to?.[0]?.set_variable?.name) &&
+        (m.from?.simultaneous || (m.from?.key_code && m.to_if_alone)),
     );
     if (!trigger) continue;
 
     const id = trigger.to[0].set_variable.name;
+    const kind: "chord" | "modTap" = trigger.from.simultaneous ? "chord" : "modTap";
     const mappings: LayerMapping[] = [];
     for (const m of rule.manipulators as Json[]) {
       if (layerVariable(m) !== id) continue;
@@ -163,9 +169,19 @@ export function extractLayers(source?: Json[]): Layer[] {
     layers.push({
       id,
       description: rule.description,
-      triggerKeys: trigger.from.simultaneous.map((k: Json) => k.key_code),
-      threshold: trigger.parameters?.["basic.simultaneous_threshold_milliseconds"] ?? 0,
-      keyDownOrder: trigger.from.simultaneous_options?.key_down_order ?? "insensitive",
+      kind,
+      triggerKeys:
+        kind === "chord"
+          ? trigger.from.simultaneous.map((k: Json) => k.key_code)
+          : [trigger.from.key_code],
+      threshold:
+        kind === "chord"
+          ? (trigger.parameters?.["basic.simultaneous_threshold_milliseconds"] ?? 0)
+          : 0,
+      keyDownOrder:
+        kind === "chord"
+          ? (trigger.from.simultaneous_options?.key_down_order ?? "insensitive")
+          : "n/a",
       mappings,
     });
   }
@@ -211,7 +227,7 @@ export function findConflicts(
       }
     }
 
-    if (layer.keyDownOrder !== "strict") {
+    if (layer.kind === "chord" && layer.keyDownOrder !== "strict") {
       conflicts.push({
         layer: layer.description,
         severity: "error",
@@ -219,7 +235,11 @@ export function findConflicts(
       });
     }
 
-    if (profileThreshold !== undefined && layer.threshold > profileThreshold) {
+    if (
+      layer.kind === "chord" &&
+      profileThreshold !== undefined &&
+      layer.threshold > profileThreshold
+    ) {
       conflicts.push({
         layer: layer.description,
         severity: "error",

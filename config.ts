@@ -1,6 +1,7 @@
 import {
   duoLayer,
   ifVar,
+  layer,
   map,
   mapSimultaneous,
   rule,
@@ -22,12 +23,13 @@ const R_GUI = ";";
 
 const KEY_DOWN_ORDER = "insensitive"; // strict is recommended if issues
 
-// duoLayer triggers. A duoLayer is matched before the Home Row Mods rule, so a
-// trigger sharing a mod key (a s d f j k l ;) shadows that modifier whenever the
-// spacebar chord lands first. Pick letters that are also rare at the start of a
-// word, since the chord is spacebar-then-letter.
+// Layer triggers. Both duoLayer chords and the MEDIA_LAYER mod-tap are matched
+// before the Home Row Mods rule, so a trigger sharing a mod key (a s d f j k l
+// ;) shadows that modifier whenever the layer lands first. Pick letters that
+// are also rare at the start of a word, since a duoLayer chord is
+// spacebar-then-letter.
 const NAV_LAYER = "g";
-const MEDIA_LAYER = "m";
+const MEDIA_LAYER = "m"; // mod-tap: hold alone, no spacebar chord
 const NUMPAD_LAYER = "n";
 const SYMBOL_LAYER = "v";
 
@@ -173,7 +175,13 @@ export const rules = [
   // ============================================================================
   // Media & System Control Layer
   // ============================================================================
-  // TRIGGER: Hold Spacebar, then M
+  // TRIGGER: Hold M alone (no spacebar). Tap M types "m" as normal.
+  //
+  // WHY MOD-TAP INSTEAD OF A SPACEBAR CHORD?
+  // Chording spacebar+M requires both keydowns to land within DUO_THRESHOLD of
+  // each other, which is hard to hit deliberately (see README research section).
+  // A mod-tap needs no synchronization between two keys: holding M past
+  // basic.to_if_held_down_threshold_milliseconds is the only condition.
   //
   // WHY THIS LAYER?
   // - No need to reach for dedicated media keys
@@ -181,9 +189,7 @@ export const rules = [
   // - Works on any keyboard (even those without media keys)
   //
   // TIP: The layout mirrors common media key positions (left for volume, right for brightness)
-  duoLayer("spacebar", MEDIA_LAYER)
-    .threshold(DUO_THRESHOLD)
-    .options(DUO_OPTIONS)
+  layer(MEDIA_LAYER)
     .description("Media & System Control Layer")
     .manipulators([
       // Volume control (left side - easy to remember)

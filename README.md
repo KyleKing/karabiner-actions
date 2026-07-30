@@ -55,15 +55,16 @@ npm test
 
 ### Active Layers
 
-All layers trigger on spacebar first, then the layer key, within a 60ms window:
+Most layers trigger on spacebar first, then the layer key, within a 60ms window:
 
 - **Navigation Layer** (`Space → G`): Vim-style HJKL navigation, page up/down, home/end, word jumping
-- **Media Controls** (`Space → M`): Volume, brightness, playback controls
 - **Numpad** (`Space → N`): Right-hand numpad layout for data entry
 - **Number & Symbols** (`Space → V`): Number row on QWERTY, shifted symbols on the home row
 - **Function Keys** and **Mouse Control**: _disabled_ - uncomment in `my-index.ts` to try them
 
-Two constraints keep layers from interfering with typing. Triggers avoid the home row mod keys (`a s d f j k l ;`), because a duoLayer is matched before the Home Row Mods rule and would shadow that modifier. And the trigger window tracks `basic.simultaneous_threshold_milliseconds` rather than karabiner.ts's 200ms default, since every spacebar duoLayer withholds the spacebar keypress until that window closes.
+**Media Controls** (`hold M`) is the exception: it's a mod-tap, not a spacebar chord. Hold `M` alone past the hold threshold to activate it, tap `M` alone to type "m". No synchronization with spacebar is needed, which is easier to land reliably than a chord (see the research section above).
+
+Two constraints keep the chord layers from interfering with typing. Triggers avoid the home row mod keys (`a s d f j k l ;`), because a layer's trigger manipulator is matched before the Home Row Mods rule and would shadow that modifier. And the trigger window tracks `basic.simultaneous_threshold_milliseconds` rather than karabiner.ts's 200ms default, since every spacebar duoLayer withholds the spacebar keypress until that window closes.
 
 ### Home Row Mods (GACS Layout)
 

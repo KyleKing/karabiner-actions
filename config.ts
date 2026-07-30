@@ -4,6 +4,7 @@ import {
   map,
   mapSimultaneous,
   rule,
+  toConsumerKey,
   toKey,
   toSetVar,
   withModifier,
@@ -187,9 +188,10 @@ export const rules = [
       map("l").to("volume_increment"), // Volume up
       map("j").to("mute"), // Mute/unmute
 
-      // Brightness control (right side)
-      map("u").to("display_brightness_decrement"), // Brightness down
-      map("o").to("display_brightness_increment"), // Brightness up
+      // Brightness control (right side). Karabiner's key_code for brightness is
+      // unreliable on many Macs; consumer_key_code is the form that actually works.
+      map("u").to(toConsumerKey("display_brightness_decrement")), // Brightness down
+      map("o").to(toConsumerKey("display_brightness_increment")), // Brightness up
 
       // Playback controls (bottom row - like media buttons)
       map("n").to("rewind"), // Previous track

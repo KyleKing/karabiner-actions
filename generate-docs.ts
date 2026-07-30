@@ -44,6 +44,21 @@ function renderConflicts(conflicts: Conflict[]): string {
     </details>`;
 }
 
+function renderUsage(layers: ReturnType<typeof extractLayers>): string {
+  const rows = layers
+    .map((l) => {
+      const chord = l.triggerKeys
+        .map((k) => (k === "spacebar" ? "␣" : k.toUpperCase()))
+        .join(" → ");
+      return `<tr><td><kbd>${escapeHtml(chord)}</kbd></td><td>${escapeHtml(l.description)}</td></tr>`;
+    })
+    .join("");
+  return `<table class="usage">
+    <thead><tr><th>Chord</th><th>Layer</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
 function renderKeyboard(): string {
   const rows = KEYBOARD_LAYOUT.map((row) => {
     const caps = row
@@ -169,13 +184,17 @@ function buildPage(): string {
   .key.trigger .legend { color: var(--accent); }
   .key.live { box-shadow: 0 0 0 2px var(--accent) inset; }
   .hint { color: var(--muted); font-size: .85rem; margin-top: 1rem; }
+  .usage { border-collapse: collapse; margin: .5rem 0 1.5rem; font-size: .85rem; }
+  .usage th, .usage td { text-align: left; padding: .3rem .9rem .3rem 0; border-bottom: 1px solid var(--line); }
+  .usage th { color: var(--muted); font-weight: 600; }
   kbd { font: inherit; font-family: ui-monospace, SFMono-Regular, monospace; font-size: .85em;
         border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .3em; }
 </style>
 <div class="wrap">
   <h1>Karabiner Layers</h1>
-  <p class="sub">Generated from <code>config.ts</code>. Every layer opens on spacebar first, then the trigger key, within ${profileThreshold}ms.</p>
+  <p class="sub">Generated from <code>config.ts</code>. Every layer opens on spacebar first, then the trigger key, within ${profileThreshold}ms. Hold both keys down together; releasing the trigger key ends the layer.</p>
   ${renderConflicts(conflicts)}
+  ${renderUsage(layers)}
   <div class="tabs" id="tabs">${tabs}</div>
   <div class="board">${renderKeyboard()}</div>
   <p class="hint">Click a tab to pin a layer, or hold the real chord (<kbd>␣</kbd> then the trigger key) to preview it. Home row mods stay badged in the top-right of each key on every layer.</p>

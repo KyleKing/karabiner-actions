@@ -75,20 +75,33 @@ function renderPractice(layers: Layer[]): string {
           ? `gap between ${l.triggerKeys.map((k) => (k === "spacebar" ? "␣" : k.toUpperCase())).join(" and ")} &le; ${l.threshold}ms`
           : `hold ${l.triggerKeys[0]?.toUpperCase()} &ge; ${l.threshold}ms`;
       const inputs = words
-        .map(
-          (w) => `<span class="test-row">
-            <span class="test-word">${w}</span>
-            <input class="test-input" type="text" data-word="${w}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        .map((w) => {
+          const label = l.kind === "chord" ? `␣ then ${w}` : w;
+          return `<span class="test-row">
+            <span class="test-word">${label}</span>
+            <input class="test-input" type="text" data-word="${w}" data-layer="${l.id}" data-kind="${l.kind}" data-threshold="${l.threshold}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <span class="test-status"></span>
-          </span>`,
-        )
+          </span>`;
+        })
         .join("");
+      const holdBar =
+        l.kind === "modTap"
+          ? `<div class="hold-bar-wrap">
+              <label class="hold-toggle"><input type="checkbox" class="hold-toggle-input" checked> show target zone while holding (always shown after release)</label>
+              <div class="hold-bar" data-layer="${l.id}">
+                <div class="hold-zone"></div>
+                <div class="hold-fill"></div>
+              </div>
+              <span class="hold-result"></span>
+            </div>`
+          : "";
       return `<div class="practice-row">
         <div class="practice-head">
           <strong>${escapeHtml(l.description)}</strong>
           <span class="practice-target">${target}</span>
           <span class="practice-readout" data-layer="${l.id}"></span>
         </div>
+        ${holdBar}
         <div class="practice-words">${inputs}</div>
       </div>`;
     })
@@ -96,7 +109,7 @@ function renderPractice(layers: Layer[]): string {
   if (!rows) return "";
   return `<section class="practice">
     <h2>Timing practice</h2>
-    <p class="hint">Type each word at normal speed, not deliberately slow. A mismatch below means this layer misfired mid-word, not a typo. The readout next to each layer shows the actual timing behind the last attempt.</p>
+    <p class="hint">Type each word at normal speed, not deliberately slow. For a chord layer, press Space right before it, same as in real prose. A mismatch below means this layer misfired mid-word (or the chord didn't land), not a typo.</p>
     ${rows}
   </section>`;
 }
@@ -250,6 +263,16 @@ function buildPage(): string {
   .test-status { font-size: .78rem; }
   .test-status.ok { color: var(--ok); }
   .test-status.bad { color: var(--bad); }
+  .hold-bar-wrap { margin-bottom: .6rem; }
+  .hold-toggle { display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: var(--muted); margin-bottom: .35rem; cursor: pointer; }
+  .hold-bar { position: relative; height: 16px; border-radius: 8px; background: var(--cap); border: 1px solid var(--line); overflow: hidden; }
+  .hold-zone { position: absolute; top: 0; bottom: 0; left: 50%; right: 0; background: color-mix(in srgb, var(--ok) 25%, transparent); border-left: 2px dashed color-mix(in srgb, var(--ok) 60%, var(--line)); }
+  .hold-bar.zone-hidden .hold-zone { visibility: hidden; }
+  .hold-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0%; background: var(--accent); }
+  .hold-fill.in-zone { background: var(--ok); }
+  .hold-result { display: block; margin-top: .35rem; font-size: .8rem; font-weight: 600; min-height: 1.1em; }
+  .hold-result.ok { color: var(--ok); }
+  .hold-result.bad { color: var(--bad); }
 </style>
 <div class="wrap">
   <h1>Karabiner Layers</h1>
@@ -344,30 +367,88 @@ function chordLayer() {
 // gap/hold durations instead of just whether a layer matched.
 const downAt = new Map();
 
+// Every chord gap ever computed, with a timestamp, so the typing test can
+// tell "space was just pressed before this word" from "space was pressed a
+// while ago for something else."
+const chordGapCache = new Map();
+const CHORD_GAP_MAX_AGE_MS = 1500;
+
 function practiceReadout(layerId) {
   return document.querySelector('.practice-readout[data-layer="' + layerId + '"]');
 }
 
+function holdBarFor(layerId) {
+  return document.querySelector('.hold-bar[data-layer="' + layerId + '"]');
+}
+
 function updateChordPractice(layer) {
-  const el = practiceReadout(layer.id);
-  if (!el) return;
   const [first, ...rest] = layer.triggerKeys;
   const t0 = downAt.get(first);
   const t1 = downAt.get(rest[0]);
   if (t0 === undefined || t1 === undefined || t1 < t0) return;
   const gap = Math.round(t1 - t0);
-  el.textContent = "last gap: " + gap + "ms";
-  el.className = "practice-readout " + (gap <= layer.threshold ? "ok" : "bad");
+  chordGapCache.set(layer.id, { gap, at: performance.now() });
+  const el = practiceReadout(layer.id);
+  if (el) {
+    el.textContent = "last gap: " + gap + "ms";
+    el.className = "practice-readout " + (gap <= layer.threshold ? "ok" : "bad");
+  }
 }
 
 function updateModTapPractice(layer) {
-  const el = practiceReadout(layer.id);
-  if (!el) return;
   const t0 = downAt.get(layer.triggerKeys[0]);
   if (t0 === undefined) return;
   const heldMs = Math.round(performance.now() - t0);
-  el.textContent = "held: " + heldMs + "ms";
-  el.className = "practice-readout " + (heldMs >= layer.threshold ? "ok" : "bad");
+  const ok = heldMs >= layer.threshold;
+  const el = practiceReadout(layer.id);
+  if (el) {
+    el.textContent = "held: " + heldMs + "ms";
+    el.className = "practice-readout " + (ok ? "ok" : "bad");
+  }
+  const bar = holdBarFor(layer.id);
+  if (bar) {
+    const pct = Math.min(100, (heldMs / (layer.threshold * 2)) * 100);
+    const fill = bar.querySelector(".hold-fill");
+    fill.style.width = pct + "%";
+    fill.className = "hold-fill " + (ok ? "in-zone" : "");
+  }
+}
+
+function resetHoldBar(layer) {
+  const bar = holdBarFor(layer.id);
+  if (!bar) return;
+  const wrap = bar.closest(".hold-bar-wrap");
+  const checkbox = wrap.querySelector(".hold-toggle-input");
+  bar.classList.toggle("zone-hidden", !checkbox.checked);
+  const fill = bar.querySelector(".hold-fill");
+  fill.style.width = "0%";
+  fill.className = "hold-fill";
+  const result = wrap.querySelector(".hold-result");
+  result.textContent = "";
+  result.className = "hold-result";
+}
+
+function finalizeHoldBar(layer) {
+  const bar = holdBarFor(layer.id);
+  if (!bar) return;
+  const t0 = downAt.get(layer.triggerKeys[0]);
+  if (t0 === undefined) return;
+  const heldMs = Math.round(performance.now() - t0);
+  const ok = heldMs >= layer.threshold;
+  bar.classList.remove("zone-hidden");
+  const result = bar.closest(".hold-bar-wrap").querySelector(".hold-result");
+  result.textContent = ok
+    ? "released after " + heldMs + "ms - inside the zone"
+    : "released after " + heldMs + "ms - too early (need " + layer.threshold + "ms+)";
+  result.className = "hold-result " + (ok ? "ok" : "bad");
+}
+
+for (const wrap of document.querySelectorAll(".hold-bar-wrap")) {
+  const checkbox = wrap.querySelector(".hold-toggle-input");
+  const bar = wrap.querySelector(".hold-bar");
+  checkbox.addEventListener("change", () => {
+    bar.classList.toggle("zone-hidden", !checkbox.checked);
+  });
 }
 
 // Chord gaps are decided at the moment the second key lands, but a mod-tap
@@ -386,6 +467,7 @@ addEventListener("keydown", (event) => {
   const key = keyOf(event);
   if (!key) return;
   if (key === "spacebar") event.preventDefault();
+  const alreadyHeld = held.has(key);
   held.add(key);
   if (!downAt.has(key)) downAt.set(key, event.timeStamp);
   cells.get(key)?.classList.add("live");
@@ -396,12 +478,16 @@ addEventListener("keydown", (event) => {
   }
   for (const layer of DATA.layers) {
     if (layer.kind === "chord") updateChordPractice(layer);
+    if (layer.kind === "modTap" && layer.triggerKeys[0] === key && !alreadyHeld) resetHoldBar(layer);
   }
 });
 
 addEventListener("keyup", (event) => {
   const key = keyOf(event);
   if (!key) return;
+  for (const layer of DATA.layers) {
+    if (layer.kind === "modTap" && layer.triggerKeys[0] === key) finalizeHoldBar(layer);
+  }
   held.delete(key);
   downAt.delete(key);
   cells.get(key)?.classList.remove("live");
@@ -421,29 +507,54 @@ addEventListener("blur", () => {
 
 for (const input of document.querySelectorAll(".test-input")) {
   const word = input.dataset.word;
+  const kind = input.dataset.kind;
+  const threshold = Number(input.dataset.threshold);
+  const layerId = input.dataset.layer;
   const status = input.nextElementSibling;
   let timer = null;
+  let capturedGap = null;
 
-  function finalize() {
+  const finalize = () => {
     const typed = input.value.toLowerCase();
     if (typed.length === 0) {
       status.textContent = "";
       status.className = "test-status";
-    } else if (typed === word) {
-      status.textContent = "ok, no misfire";
-      status.className = "test-status ok";
-    } else {
+      return;
+    }
+    if (typed !== word) {
       status.textContent = 'misfire? typed "' + input.value + '", expected "' + word + '"';
       status.className = "test-status bad";
+      return;
     }
-  }
+    if (kind === "chord") {
+      if (capturedGap === null) {
+        status.textContent = "no chord detected - press Space right before " + word;
+        status.className = "test-status bad";
+      } else if (capturedGap > threshold) {
+        status.textContent = "chord too slow: gap " + capturedGap + "ms (target ≤ " + threshold + "ms)";
+        status.className = "test-status bad";
+      } else {
+        status.textContent = "ok, gap " + capturedGap + "ms";
+        status.className = "test-status ok";
+      }
+      return;
+    }
+    status.textContent = "ok, no misfire";
+    status.className = "test-status ok";
+  };
 
   input.addEventListener("focus", () => {
     input.value = "";
+    capturedGap = null;
     status.textContent = "";
     status.className = "test-status";
   });
   input.addEventListener("input", () => {
+    if (kind === "chord" && input.value.length === 1) {
+      const cached = chordGapCache.get(layerId);
+      capturedGap =
+        cached && performance.now() - cached.at < CHORD_GAP_MAX_AGE_MS ? cached.gap : null;
+    }
     clearTimeout(timer);
     if (input.value.length >= word.length) finalize();
     else timer = setTimeout(finalize, 900);

@@ -28,7 +28,7 @@
     "@biomejs/biome": "2.5.6",
     "@types/node": "^26.1.2",
     "tsx": "^4.19.4",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "karabiner.ts": "^1.31.0"
